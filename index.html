@@ -1,0 +1,877 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  LayoutDashboard, 
+  MailWarning, 
+  MailCheck, 
+  FilePlus2, 
+  Database, 
+  Settings, 
+  Search, 
+  Plus, 
+  Download, 
+  FileText, 
+  ChevronRight, 
+  CheckCircle2, 
+  Clock, 
+  Upload, 
+  Printer, 
+  Trash2, 
+  Edit, 
+  User, 
+  Building2, 
+  ArrowRight, 
+  ArrowLeft, 
+  Eye, 
+  BarChart3, 
+  History, 
+  Calendar, 
+  Hash 
+} from 'lucide-react';
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Logo Kabupaten Tuban (Digunakan di Sidebar dan Preview Surat)
+  const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Lambang_Kabupaten_Tuban.png/480px-Lambang_Kabupaten_Tuban.png";
+
+  // Daftar 11 Desa Kecamatan Grabagan
+  const villages = [
+    "Banyubang", "Dahor", "Dermawuharjo", "Gesikan", "Grabagan", 
+    "Menyunyur", "Ngandong", "Ngarum", "Ngrejeng", "Pakis", "Waleran"
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard': return <DashboardView setActiveTab={setActiveTab} villages={villages} />;
+      case 'surat-masuk': return <SuratMasukView setActiveTab={setActiveTab} villages={villages} />;
+      case 'surat-keluar': return <SuratKeluarView setActiveTab={setActiveTab} villages={villages} />;
+      case 'buat-surat': return <BuatSuratWizard villages={villages} logoUrl={logoUrl} />;
+      case 'master-data': return <MasterDataView villages={villages} />;
+      case 'settings': return <SettingsView />;
+      default: return <DashboardView />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-[#F8FAFC] text-slate-900" style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
+      {/* Font Loader via CSS Injection */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
+
+      {/* Sidebar */}
+      <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-slate-900 text-white transition-all duration-300 flex flex-col shadow-2xl z-20`}>
+        <div className="p-4 flex items-center gap-3 border-b border-slate-800 overflow-hidden min-h-[88px]">
+          <div className="bg-white p-1.5 rounded-xl shrink-0 shadow-md">
+            <img 
+              src={logoUrl} 
+              alt="Logo Kabupaten Tuban" 
+              className="w-10 h-10 object-contain"
+              onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=TUBAN'; }}
+            />
+          </div>
+          {sidebarOpen && (
+            <div className="flex flex-col leading-tight animate-in fade-in duration-500">
+              <span className="font-semibold text-[10px] text-slate-400 uppercase tracking-[0.2em]">Pemerintah Kab. Tuban</span>
+              <span className="font-extrabold text-lg tracking-tight truncate">Kec. Grabagan</span>
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 py-6 overflow-y-auto px-3 space-y-1">
+          <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} isOpen={sidebarOpen} />
+          <NavItem icon={<MailWarning size={20} />} label="Surat Masuk" active={activeTab === 'surat-masuk'} onClick={() => setActiveTab('surat-masuk')} isOpen={sidebarOpen} />
+          <NavItem icon={<MailCheck size={20} />} label="Surat Keluar" active={activeTab === 'surat-keluar'} onClick={() => setActiveTab('surat-keluar')} isOpen={sidebarOpen} />
+          
+          <div className={`px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ${!sidebarOpen && 'text-center px-0'}`}>
+            {sidebarOpen ? 'Core Engine' : '•••'}
+          </div>
+          
+          <NavItem icon={<FilePlus2 size={20} />} label="Buat Surat" active={activeTab === 'buat-surat'} onClick={() => setActiveTab('buat-surat')} isOpen={sidebarOpen} />
+          
+          <div className={`px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ${!sidebarOpen && 'text-center px-0'}`}>
+            {sidebarOpen ? 'Data & Sistem' : '•••'}
+          </div>
+          
+          <NavItem icon={<Database size={20} />} label="Master Data" active={activeTab === 'master-data'} onClick={() => setActiveTab('master-data')} isOpen={sidebarOpen} />
+          <NavItem icon={<Settings size={20} />} label="Pengaturan" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} isOpen={sidebarOpen} />
+        </nav>
+
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+          <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center border border-blue-400 shadow-lg shadow-blue-900/20 text-sm font-bold">
+              A
+            </div>
+            {sidebarOpen && (
+              <div className="overflow-hidden animate-in slide-in-from-left-2 duration-300">
+                <p className="text-xs font-semibold truncate text-slate-200 font-normal">Admin Kecamatan</p>
+                <p className="text-[10px] text-slate-500 font-medium tracking-tight">SISO-APBDes v2.1</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto flex flex-col relative">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 active:scale-95">
+              <ChevronRight className={`transition-transform duration-300 ${sidebarOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div className="hidden lg:flex flex-col">
+              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em]">Sistem Informasi Tata Kelola Surat Rekomendasi</h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+             <div className="bg-white text-slate-600 px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 shadow-sm flex items-center gap-2">
+               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+               TA 2026
+             </div>
+          </div>
+        </header>
+
+        <div className="p-8 max-w-[1400px] mx-auto w-full">
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// Sub-components
+const NavItem = ({ icon, label, active, onClick, isOpen }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+      active 
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+    }`}
+  >
+    <span className={`shrink-0 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
+      {icon}
+    </span>
+    {isOpen && <span className="font-medium text-sm tracking-tight">{label}</span>}
+  </button>
+);
+
+const DashboardView = ({ setActiveTab, villages }) => {
+  const userActivities = [
+    { id: 1, action: "Membuat Rekomendasi", target: "Desa Dahor", time: "10 mnt yang lalu" },
+    { id: 2, action: "Mengarsip Surat Masuk", target: "Desa Gesikan", time: "1 jam yang lalu" },
+    { id: 3, action: "Mencetak Ulang PDF", target: "Desa Waleran", time: "3 jam yang lalu" }
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Ringkasan</h1>
+          <p className="text-slate-500 text-sm font-medium mt-1 font-normal">Pantau performa tata kelola surat hari ini.</p>
+        </div>
+        <button 
+          onClick={() => setActiveTab('buat-surat')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 shadow-xl shadow-blue-600/20 transition-all font-bold text-sm active:scale-95 font-normal"
+        >
+          <Plus size={18} strokeWidth={3} /> Buat Surat Rekomendasi
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Surat Masuk (2026)" value="42" icon={<MailWarning className="text-blue-600" />} trend="+5 bulan ini" />
+        <StatCard title="Rekomendasi Terbit" value="38" icon={<MailCheck className="text-emerald-600" />} trend="+3 bulan ini" />
+        
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
+              <History size={18} />
+            </div>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest font-normal">Riwayat Aktivitas</h4>
+          </div>
+          <div className="space-y-4 flex-1 overflow-y-auto max-h-[140px] pr-2 custom-scrollbar">
+            {userActivities.map((act) => (
+              <div key={act.id} className="flex flex-col border-l-2 border-slate-100 pl-4 py-1 hover:border-blue-300 transition-colors">
+                <p className="text-[13px] font-normal text-slate-700">
+                  {act.action} <span className="text-blue-600">{act.target}</span>
+                </p>
+                <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5 font-normal">
+                  <Clock size={10} /> {act.time}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600">
+              <BarChart3 size={22} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 tracking-tight uppercase tracking-wider font-normal">
+              Rekapitulasi Surat Masuk Per Desa
+            </h3>
+          </div>
+          <span className="text-[10px] text-blue-600 font-bold uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 font-normal">Live 2026</span>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+          {villages.map((v, i) => {
+            const count = (i * 7 + 3) % 12 + 1;
+            return (
+              <div key={v} className="group border border-slate-100 rounded-2xl p-5 flex flex-col items-center text-center gap-3 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-default bg-slate-50/50">
+                <div className="bg-white text-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm border border-slate-100 group-hover:bg-blue-600 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                  {count}
+                </div>
+                <span className="text-xs font-normal text-slate-600 group-hover:text-slate-900 transition-colors uppercase">{v}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatCard = ({ title, value, icon, trend, color = "bg-white" }) => (
+  <div className={`${color} p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start justify-between h-full hover:shadow-md transition-all`}>
+    <div>
+      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1 font-normal">{title}</p>
+      <h4 className="text-4xl font-extrabold text-slate-900 tracking-tighter font-normal">{value}</h4>
+      {trend && <p className="text-[10px] text-emerald-600 mt-3 font-bold bg-emerald-50 px-2.5 py-1 rounded-full inline-block border border-emerald-100 font-normal">{trend}</p>}
+    </div>
+    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner group-hover:scale-110 transition-transform">
+      {icon}
+    </div>
+  </div>
+);
+
+const ActionButtons = () => (
+  <div className="flex justify-end gap-1.5">
+    <button title="Preview" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90 border border-transparent hover:border-blue-100">
+      <Eye size={17} />
+    </button>
+    <button title="Download" className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all active:scale-90 border border-transparent hover:border-emerald-100">
+      <Download size={17} />
+    </button>
+    <button title="Cetak" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all active:scale-90 border border-transparent hover:border-rose-100">
+      <Printer size={17} />
+    </button>
+  </div>
+);
+
+const SuratMasukView = ({ villages, setActiveTab }) => {
+  const [search, setSearch] = useState("");
+  
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20">
+            <MailWarning size={22} />
+          </div>
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-800 font-normal">Log Surat Masuk</h2>
+        </div>
+        <button 
+          onClick={() => setActiveTab('buat-surat')}
+          className="w-full sm:w-auto bg-slate-900 text-white px-6 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/10 font-bold transition-all text-xs uppercase tracking-widest active:scale-95 font-normal"
+        >
+          <Plus size={16} strokeWidth={3} /> Buat Surat
+        </button>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[280px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Cari nomor surat permohonan..." 
+              className="w-full pl-11 pr-4 py-3 border-slate-200 border rounded-xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-sm transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <select className="border-slate-200 border rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 min-w-[200px] font-normal text-slate-600 text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat transition-all">
+            <option>Semua Desa</option>
+            {villages.map(v => <option key={v}>{v}</option>)}
+          </select>
+          <div className="relative">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+            <input type="date" className="pl-11 pr-5 py-3 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 font-normal text-slate-600 text-sm transition-all shadow-sm bg-white" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-blue-600 text-white">
+                <th className="px-6 py-4 font-bold text-[11px] w-12 text-center uppercase tracking-widest border-r border-blue-500/30 font-normal">No</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Nomor Surat</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Desa</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Tanggal</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest text-right border-r border-blue-500/30 font-normal">Total Anggaran</th>
+                <th className="px-6 py-4 font-bold text-[11px] text-center uppercase tracking-widest font-normal">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <tr key={i} className="hover:bg-blue-50/20 transition-all group">
+                  <td className="px-6 py-4 text-xs text-center font-semibold text-slate-400">{i + 1}</td>
+                  <td className="px-6 py-4 text-sm font-mono font-medium text-slate-700 tracking-tighter">900/0{i+12}/414.420.0{i+1}/2026</td>
+                  <td className="px-6 py-4 text-sm font-normal text-slate-700 uppercase">{villages[i]}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-tight font-normal">1{i} Feb 2026</td>
+                  <td className="px-6 py-4 text-sm font-mono text-right text-blue-600 font-bold">
+                    Rp {(15400000 + (i * 2500000)).toLocaleString('id-ID')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <ActionButtons />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SuratKeluarView = ({ villages, setActiveTab }) => {
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-emerald-600 rounded-xl text-white shadow-lg shadow-emerald-600/20">
+            <MailCheck size={22} />
+          </div>
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-800 font-normal">Arsip Surat Rekomendasi</h2>
+        </div>
+        <button 
+          onClick={() => setActiveTab('buat-surat')}
+          className="w-full sm:w-auto bg-slate-900 text-white px-6 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/10 font-bold transition-all text-xs uppercase tracking-widest active:scale-95 font-normal"
+        >
+          <Plus size={16} strokeWidth={3} /> Buat Surat
+        </button>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[280px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Cari nomor surat rekomendasi..." 
+              className="w-full pl-11 pr-4 py-3 border-slate-200 border rounded-xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-sm transition-all"
+            />
+          </div>
+          <select className="border-slate-200 border rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 min-w-[200px] font-normal text-slate-600 text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat transition-all">
+            <option>Semua Desa</option>
+            {villages.map(v => <option key={v}>{v}</option>)}
+          </select>
+          <div className="relative">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+            <input type="date" className="pl-11 pr-5 py-3 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 font-normal text-slate-600 text-sm transition-all shadow-sm bg-white" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-blue-600 text-white">
+                <th className="px-6 py-4 font-bold text-[11px] w-12 text-center uppercase tracking-widest border-r border-blue-500/30 font-normal">No</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Nomor Surat</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Desa</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest border-r border-blue-500/30 font-normal">Tanggal</th>
+                <th className="px-6 py-4 font-bold text-[11px] uppercase tracking-widest text-right border-r border-blue-500/30 font-normal">Total Anggaran</th>
+                <th className="px-6 py-4 font-bold text-[11px] text-center uppercase tracking-widest font-normal">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <tr key={i} className="hover:bg-blue-50/20 transition-all group">
+                  <td className="px-6 py-4 text-xs text-center font-semibold text-slate-400">{i + 1}</td>
+                  <td className="px-6 py-4 text-sm font-mono font-medium text-blue-700 underline decoration-blue-100 underline-offset-4 decoration-2 tracking-tighter transition-all group-hover:decoration-blue-400">900/0{i+39}/414.420/2026</td>
+                  <td className="px-6 py-4 text-sm font-normal text-slate-700 uppercase">{villages[i+5]}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-tight font-normal">2{i} Feb 2026</td>
+                  <td className="px-6 py-4 text-sm font-mono text-right text-emerald-600 font-bold">
+                    Rp {(28000000 + (i * 4200000)).toLocaleString('id-ID')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <ActionButtons />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BuatSuratWizard = ({ villages, logoUrl }) => {
+  const [step, setStep] = useState(1);
+  const [isParsing, setIsParsing] = useState(false);
+  
+  const [selectedVillage, setSelectedVillage] = useState("");
+  const [sequenceNum, setSequenceNum] = useState("001");
+  const [letterDate, setLetterDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const villageCodes = {
+    "Banyubang": "414.420.05", "Dahor": "414.420.06", "Dermawuharjo": "414.420.08",
+    "Gesikan": "414.420.02", "Grabagan": "414.420.01", "Menyunyur": "414.420.09",
+    "Ngandong": "414.420.03", "Ngarum": "414.420.10", "Ngrejeng": "414.420.11",
+    "Pakis": "414.420.07", "Waleran": "414.420.04"
+  };
+
+  const steps = [
+    { id: 1, label: "Info Header" },
+    { id: 2, label: "Sumber Data" },
+    { id: 3, label: "Ekstraksi" },
+    { id: 4, label: "Pratinjau" },
+    { id: 5, label: "Selesai" }
+  ];
+
+  const simulateParsing = () => {
+    setIsParsing(true);
+    setTimeout(() => {
+        setIsParsing(false);
+        setStep(4);
+    }, 2000);
+  };
+
+  const currentVillageCode = selectedVillage ? villageCodes[selectedVillage] : "414.420.XX";
+  const incomingLetterNo = `900/${sequenceNum}/${currentVillageCode}/2026`;
+  const outgoingLetterNo = `900/039/414.420/2026`; 
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Stepper Modern */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex justify-between relative max-w-3xl mx-auto">
+          <div className="absolute top-[18px] left-0 w-full h-[2px] bg-slate-100 -z-0"></div>
+          <div className="absolute top-[18px] left-0 h-[2px] bg-blue-600 transition-all duration-700 -z-0" style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}></div>
+          
+          {steps.map((s) => (
+            <div key={s.id} className="flex flex-col items-center gap-3 relative z-10">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold border-2 transition-all duration-500 shadow-sm ${
+                  step >= s.id ? 'bg-blue-600 text-white border-blue-600 scale-110' : 'bg-white text-slate-300 border-slate-100'
+              }`}>
+                {step > s.id ? <CheckCircle2 size={20} /> : s.id}
+              </div>
+              <span className={`text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-500 ${step >= s.id ? 'text-blue-600' : 'text-slate-300'}`}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+        {step === 1 && (
+          <div className="p-10 space-y-8">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+              <div className="flex items-center gap-4">
+                 <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+                    <FilePlus2 size={28} />
+                 </div>
+                 <div>
+                    <h3 className="text-2xl font-black text-slate-800 tracking-tight font-normal">Informasi Kepala Surat</h3>
+                    <p className="text-slate-500 text-sm font-medium font-normal">Lengkapi identitas surat pemohon desa.</p>
+                 </div>
+              </div>
+              <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2">
+                <Hash size={14} className="opacity-50" />
+                <span className="font-mono text-xs font-bold uppercase font-normal">Kode: {currentVillageCode}</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 font-normal">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Desa Pemohon</label>
+                <div className="relative group">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                    <select 
+                      className="w-full border-2 border-slate-100 pl-12 pr-10 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-normal text-slate-700 bg-slate-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat"
+                      value={selectedVillage}
+                      onChange={(e) => setSelectedVillage(e.target.value)}
+                    >
+                    <option value="">Pilih Desa...</option>
+                    {villages.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Tanggal Surat Rekomendasi</label>
+                <div className="relative group">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                    <input 
+                      type="date" 
+                      className="w-full border-2 border-slate-100 pl-12 pr-5 py-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 transition-all shadow-sm" 
+                      value={letterDate}
+                      onChange={(e) => setLetterDate(e.target.value)}
+                    />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1 font-normal">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">No. Surat Permohonan</label>
+                  <span className="text-[9px] font-mono text-slate-400">FORMAT: 900/[URUT]/[KODE]/2026</span>
+                </div>
+                <div className="flex gap-3">
+                  <div className="bg-slate-100 border border-slate-200 px-4 py-3.5 rounded-2xl text-slate-500 font-mono font-semibold flex items-center font-normal">900/</div>
+                  <input 
+                    type="text" 
+                    placeholder="001" 
+                    className="w-28 border-2 border-slate-100 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-center font-normal text-slate-800 bg-slate-50/50 transition-all shadow-sm"
+                    value={sequenceNum}
+                    onChange={(e) => setSequenceNum(e.target.value)}
+                  />
+                  <div className="flex-1 bg-slate-100 border border-slate-200 px-4 py-3.5 rounded-2xl text-slate-400 font-mono text-[11px] font-bold flex items-center overflow-hidden whitespace-nowrap font-normal">
+                    /{currentVillageCode}/2026
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Sifat Surat</label>
+                <select className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat transition-all shadow-sm">
+                  <option>Segera</option>
+                  <option>Penting</option>
+                  <option>Biasa</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 col-span-1 md:col-span-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Perihal Rekomendasi</label>
+                <textarea 
+                  className="w-full border-2 border-slate-100 p-5 rounded-2xl h-28 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 transition-all shadow-sm resize-none" 
+                  defaultValue="Rekomendasi Pencairan Dana Desa (DD) Tahap II Tahun Anggaran 2026"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="p-20 text-center space-y-10 font-normal">
+            <div className="max-w-xl mx-auto font-normal">
+               <h3 className="text-3xl font-black text-slate-800 tracking-tight uppercase font-normal">Sumber Data</h3>
+               <p className="text-slate-500 font-medium mt-2">Unggah lampiran SPM desa dalam format Excel.</p>
+            </div>
+            
+            <div className="bg-slate-50 border-4 border-dashed border-slate-200 rounded-[2.5rem] p-20 flex flex-col items-center gap-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group active:scale-[0.98]">
+              <div className="bg-white p-8 rounded-[2rem] shadow-xl text-blue-600 group-hover:scale-110 transition-transform duration-500 border border-slate-100 font-normal">
+                <Upload size={56} strokeWidth={2} />
+              </div>
+              <div className="space-y-2 font-normal">
+                <p className="text-xl font-bold text-slate-700 tracking-tight">Tarik & Lepas file ke sini</p>
+                <p className="text-sm text-slate-400 font-medium tracking-tight font-normal">atau klik untuk menelusuri penyimpanan lokal</p>
+              </div>
+              <div className="flex gap-3 pt-4 font-normal">
+                 <span className="bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-slate-200 shadow-sm uppercase tracking-widest font-normal">Excel XLSX</span>
+                 <span className="bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-slate-200 shadow-sm uppercase tracking-widest font-normal">Maks 10MB</span>
+              </div>
+            </div>
+            
+            <button className="text-blue-600 font-bold text-sm hover:underline decoration-2 underline-offset-4 transition-all uppercase tracking-widest font-normal">Gunakan Input Manual</button>
+          </div>
+        )}
+
+        {step === 3 && (
+            <div className="p-24 flex flex-col items-center justify-center space-y-8 font-normal">
+                {isParsing ? (
+                    <>
+                        <div className="relative font-normal">
+                            <div className="w-28 h-28 border-[10px] border-slate-100 rounded-full shadow-inner"></div>
+                            <div className="absolute top-0 left-0 w-28 h-28 border-[10px] border-blue-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-blue-500/20"></div>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-2xl font-black text-slate-800 tracking-tight animate-pulse uppercase font-normal">Mengekstrak Data...</p>
+                            <p className="text-sm text-slate-400 font-medium max-w-sm mx-auto mt-2 leading-relaxed">Algoritma parser sedang mengidentifikasi nominal anggaran dan rincian kegiatan SPM desa.</p>
+                        </div>
+                    </>
+                ) : (
+                    <div className="text-center space-y-8 animate-in zoom-in-95 duration-500 font-normal">
+                         <div className="bg-emerald-50 text-emerald-600 p-8 rounded-full w-32 h-32 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10 border-8 border-white scale-110 font-normal">
+                            <CheckCircle2 size={64} />
+                         </div>
+                         <div className="space-y-3 font-normal">
+                            <h4 className="text-3xl font-black text-slate-800 tracking-tight uppercase font-normal">Sistem Siap</h4>
+                            <p className="text-slate-500 font-medium leading-relaxed max-w-md mx-auto">Sistem mendeteksi <span className="text-blue-600 font-extrabold">4 baris kegiatan</span> dengan total anggaran sebesar <span className="text-slate-900 font-extrabold tracking-tight">Rp 57.000.000</span>.</p>
+                         </div>
+                         <button onClick={() => setStep(4)} className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-extrabold shadow-2xl shadow-blue-600/30 hover:bg-blue-700 hover:scale-105 transition-all uppercase tracking-[0.15em] text-sm active:scale-95 font-normal">Lihat Pratinjau Surat</button>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {step === 4 && (
+            <div className="p-8 space-y-8 font-normal">
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div className="flex items-center gap-3 font-normal">
+                       <FileText size={20} className="text-slate-400" />
+                       <h3 className="font-extrabold uppercase tracking-[0.1em] text-slate-500 text-xs">Final Draft Pratinjau</h3>
+                    </div>
+                    <button className="text-blue-600 flex items-center gap-2 text-xs font-bold border-2 border-blue-100 px-5 py-2 rounded-xl bg-white hover:bg-blue-50 hover:border-blue-200 transition-all uppercase active:scale-95 font-normal">
+                        <Edit size={16} /> Sunting Konten
+                    </button>
+                </div>
+                
+                <div className="bg-slate-200 p-10 rounded-3xl border-8 border-white shadow-inner flex justify-center overflow-x-auto">
+                    {/* A4 Simulator - Updated to font-sans (Inter) */}
+                    <div className="bg-white w-full max-w-[800px] min-h-[1100px] p-[2.5cm] shadow-2xl text-[12px] space-y-6 relative text-black leading-snug font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        {/* Kop Surat */}
+                        <div className="flex items-center border-b-[4px] border-double border-black pb-6 mb-6">
+                            <img src={logoUrl} alt="Logo" className="w-24 h-28 object-contain mr-6" />
+                            <div className="text-center flex-1 pr-16 font-sans">
+                                <h4 className="font-bold text-lg uppercase tracking-tight leading-none">Pemerintah Kabupaten Tuban</h4>
+                                <h4 className="font-bold text-2xl uppercase tracking-tighter leading-tight">Kecamatan Grabagan</h4>
+                                <p className="text-[11px] font-normal italic leading-normal">Jl. Raya Grabagan No. 123 Kode Pos 62372</p>
+                                <div className="flex justify-center mt-2">
+                                  <div className="border-b-2 border-black px-6 font-bold uppercase tracking-[0.2em] text-[11px]">Grabagan</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-start font-sans">
+                            <div className="w-[50%] space-y-1">
+                                <p className="flex items-start"><span className="w-20">Nomor</span>: <span className="font-bold ml-1 flex-1">{outgoingLetterNo}</span></p>
+                                <p className="flex items-start"><span className="w-20">Sifat</span>: <span className="ml-1 flex-1">Segera</span></p>
+                                <p className="flex items-start"><span className="w-20">Lampiran</span>: <span className="ml-1 flex-1">-</span></p>
+                                <p className="flex items-start font-bold"><span className="w-20 tracking-tight">Perihal</span>: <span className="ml-1 flex-1 underline decoration-1 underline-offset-4">Rekomendasi Pencairan DD Tahun 2026</span></p>
+                            </div>
+                            <div className="text-right">
+                                <p className="mb-6 font-medium">Grabagan, {new Date(letterDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                                <div className="text-left inline-block">
+                                    <p>Kepada Yth,</p>
+                                    <p className="font-bold">Kepala Cabang Pembantu Bank Jatim Cabang Tuban</p>
+                                    <p>di -</p>
+                                    <p className="font-bold uppercase tracking-widest pl-4">RENGEL</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="indent-[1.5cm] text-justify leading-relaxed mt-10">Berdasarkan permohonan pencairan Nomor <span className="font-bold italic">{incomingLetterNo}</span> dari Desa {selectedVillage || "[Nama Desa]"}, dengan ini kami memberikan rekomendasi pencairan dana kepada Pemerintah Desa {selectedVillage || "[Nama Desa]"} melalui Bank Jatim sebagai berikut :</p>
+                        
+                        {/* Table SPM with 5 Columns: NO, NOMOR SPM, KEGIATAN, ANGGARAN, KETERANGAN */}
+                        <table className="w-full border-collapse border-2 border-black mt-6 text-[11px]">
+                            <thead>
+                                <tr className="bg-slate-50 uppercase font-sans font-bold">
+                                    <th className="border-2 border-black p-3 w-10 text-center">No</th>
+                                    <th className="border-2 border-black p-3 text-left w-32">Nomor SPM</th>
+                                    <th className="border-2 border-black p-3 text-left">Kegiatan / Keperluan</th>
+                                    <th className="border-2 border-black p-3 text-right w-36">Anggaran (Rp)</th>
+                                    <th className="border-2 border-black p-3 text-left w-24">Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="border-2 border-black p-3 text-center">1</td>
+                                    <td className="border-2 border-black p-3 font-mono">0001/SPM/DD/2026</td>
+                                    <td className="border-2 border-black p-3 leading-normal font-normal">Pembangunan Jalan Usaha Tani (JUT) Dusun Dahor</td>
+                                    <td className="border-2 border-black p-3 text-right font-mono font-bold">45.000.000</td>
+                                    <td className="border-2 border-black p-3 text-xs font-normal italic">Fisik</td>
+                                </tr>
+                                <tr>
+                                    <td className="border-2 border-black p-3 text-center">2</td>
+                                    <td className="border-2 border-black p-3 font-mono">0002/SPM/DD/2026</td>
+                                    <td className="border-2 border-black p-3 leading-normal font-normal">Penyelenggaraan PAUD Melati III (Honor Guru)</td>
+                                    <td className="border-2 border-black p-3 text-right font-mono font-bold">12.000.000</td>
+                                    <td className="border-2 border-black p-3 text-xs font-normal italic">Operasional</td>
+                                </tr>
+                                <tr className="font-bold bg-slate-50">
+                                    <td colSpan="3" className="border-2 border-black p-4 text-right uppercase tracking-[0.15em]">Jumlah Total Rekomendasi</td>
+                                    <td className="border-2 border-black p-4 text-right font-mono text-[13px]">57.000.000</td>
+                                    <td className="border-2 border-black p-4"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <p className="indent-[1.5cm] text-justify leading-relaxed mt-8">Demikian rekomendasi ini dibuat untuk dapat dipergunakan dalam proses pencairan sesuai ketentuan yang berlaku.</p>
+
+                        <div className="flex justify-end pt-16">
+                            <div className="text-center w-[250px] space-y-1 font-sans">
+                                <p className="font-bold uppercase tracking-tight">Camat Grabagan</p>
+                                <div className="h-[2.5cm]"></div>
+                                <p className="font-bold underline text-[14px] uppercase tracking-tighter">H. SUWANTO, S.STP, M.M</p>
+                                <p className="font-normal text-[10px] uppercase tracking-wide">Pembina Tingkat I</p>
+                                <p className="font-normal text-[10px] tracking-widest">NIP. 19780101 200501 1 012</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {step === 5 && (
+             <div className="p-20 text-center space-y-10 animate-in zoom-in-95 duration-700 font-normal">
+                <div className="relative inline-block font-normal">
+                    <div className="bg-emerald-100 text-emerald-600 p-10 rounded-[3rem] w-36 h-36 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10 border-4 border-white relative z-10 font-normal">
+                        <CheckCircle2 size={72} strokeWidth={3} />
+                    </div>
+                    <div className="absolute -top-4 -right-4 w-12 h-12 bg-blue-500 rounded-full blur-2xl opacity-40"></div>
+                </div>
+                <div className="space-y-4 font-normal">
+                    <h3 className="text-4xl font-black text-slate-800 uppercase tracking-tight font-normal">Pengarsipan Selesai!</h3>
+                    <p className="text-slate-500 font-medium text-lg font-normal">Dokumen rekomendasi telah diterbitkan dengan nomor arsip kecamatan:</p>
+                    <div className="inline-block bg-slate-900 text-blue-400 font-mono text-2xl font-black px-8 py-4 rounded-[1.5rem] border border-slate-700 shadow-2xl font-normal">
+                        {outgoingLetterNo}
+                    </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-5 justify-center mt-12 font-normal">
+                    <button className="bg-slate-100 text-slate-800 px-10 py-5 rounded-2xl flex items-center justify-center gap-3 font-extrabold shadow-lg hover:bg-slate-200 transition-all uppercase tracking-widest text-xs active:scale-95 border border-slate-200 font-normal">
+                        <Download size={20} /> Download DOCX
+                    </button>
+                    <button className="bg-blue-600 text-white px-10 py-5 rounded-2xl flex items-center justify-center gap-3 font-extrabold shadow-2xl shadow-blue-500/30 hover:bg-blue-700 hover:scale-105 transition-all uppercase tracking-widest text-xs active:scale-95 border border-blue-400 font-normal">
+                        <Printer size={20} /> Cetak & Arsipkan
+                    </button>
+                </div>
+                <div className="pt-10 font-normal">
+                    <button onClick={() => window.location.reload()} className="text-slate-400 font-bold text-xs hover:text-blue-600 flex items-center gap-2 mx-auto uppercase tracking-[0.2em] transition-all group font-normal">
+                        <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300 font-normal" /> Buat Rekomendasi Baru
+                    </button>
+                </div>
+             </div>
+        )}
+
+        {/* Action Controls */}
+        {step < 5 && (
+            <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center font-normal">
+                <button 
+                    onClick={() => setStep(s => Math.max(1, s - 1))}
+                    disabled={step === 1}
+                    className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all font-normal ${step === 1 ? 'text-slate-300 cursor-not-allowed border-transparent' : 'text-slate-600 hover:bg-white border border-slate-200 shadow-sm active:scale-95'}`}
+                >
+                    <ArrowLeft size={16} /> Kembali
+                </button>
+                
+                {step === 2 ? (
+                    <button 
+                        onClick={simulateParsing}
+                        className="bg-blue-600 text-white px-10 py-3.5 rounded-2xl flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-105 transition-all font-black uppercase tracking-widest text-xs active:scale-95 font-normal"
+                    >
+                        Proses File <ArrowRight size={16} />
+                    </button>
+                ) : (
+                    <button 
+                        onClick={() => setStep(s => Math.min(5, s + 1))}
+                        disabled={step === 1 && !selectedVillage}
+                        className={`bg-blue-600 text-white px-10 py-3.5 rounded-2xl flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-105 transition-all font-black uppercase tracking-widest text-xs active:scale-95 font-normal ${step === 3 && 'hidden'} ${step === 1 && !selectedVillage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        {step === 4 ? 'Finalisasi Dokumen' : 'Lanjutkan'} <ArrowRight size={16} />
+                    </button>
+                )}
+            </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const MasterDataView = ({ villages }) => {
+    const [subTab, setSubTab] = useState('desa');
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 font-normal">
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight uppercase font-normal">Master Data Kontrol</h2>
+            <div className="flex gap-1 bg-slate-100 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 font-normal">
+                <button 
+                    onClick={() => setSubTab('desa')}
+                    className={`px-8 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all font-normal ${subTab === 'desa' ? 'bg-white text-blue-600 shadow-md border border-slate-100' : 'text-slate-500 hover:text-slate-800'}`}>
+                    Daftar Desa
+                </button>
+                <button 
+                    onClick={() => setSubTab('pejabat')}
+                    className={`px-8 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all font-normal ${subTab === 'pejabat' ? 'bg-white text-blue-600 shadow-md border border-slate-100' : 'text-slate-500 hover:text-slate-800'}`}>
+                    Struktur Pejabat
+                </button>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm font-normal">
+                {subTab === 'desa' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-normal">
+                        {villages.map(v => (
+                            <div key={v} className="border border-slate-100 rounded-[1.5rem] p-6 flex justify-between items-center hover:shadow-xl hover:border-blue-200 transition-all bg-slate-50/50 group active:scale-[0.98] font-normal">
+                                <div>
+                                    <h4 className="font-extrabold text-slate-800 uppercase tracking-tight text-base group-hover:text-blue-600 transition-colors font-normal">Desa {v}</h4>
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 font-normal">Kec. Grabagan • Tuban</p>
+                                </div>
+                                <button className="p-3 bg-white rounded-xl text-slate-400 hover:text-blue-600 shadow-sm border border-slate-100 hover:scale-110 transition-all duration-300 font-normal"><Edit size={18} /></button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 font-normal">
+                        <div className="bg-slate-50/50 p-8 rounded-[2rem] flex flex-col items-center gap-6 border-2 border-slate-100 group hover:border-blue-300 transition-all font-normal">
+                            <div className="w-20 h-20 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-500/20 group-hover:scale-110 transition-transform duration-500 font-normal">C</div>
+                            <div className="text-center font-normal">
+                                <h4 className="font-extrabold text-slate-900 uppercase text-lg leading-tight tracking-tight font-normal">H. SUWANTO, S.STP, M.M</h4>
+                                <p className="text-xs text-blue-600 font-bold italic tracking-wide mt-1 uppercase tracking-widest font-normal">Camat Grabagan</p>
+                                <p className="text-[10px] font-mono font-bold text-slate-400 mt-4 tracking-widest bg-white px-4 py-2 rounded-full shadow-inner border border-slate-100 font-normal">NIP. 19780101 200501 1 012</p>
+                            </div>
+                            <button className="bg-white border-2 border-slate-100 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95 font-normal">Sunting Data</button>
+                        </div>
+                        <div className="bg-slate-50/50 p-8 rounded-[2rem] flex flex-col items-center gap-6 border-2 border-slate-100 group hover:border-emerald-300 transition-all font-normal">
+                            <div className="w-20 h-20 bg-emerald-600 rounded-[1.5rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-500 font-normal">S</div>
+                            <div className="text-center font-normal">
+                                <h4 className="font-extrabold text-slate-900 uppercase text-lg leading-tight tracking-tight font-normal">AHMAD FAUZI, S.Sos</h4>
+                                <p className="text-xs text-emerald-600 font-bold italic tracking-wide mt-1 uppercase tracking-widest font-normal">Sekretaris Kecamatan</p>
+                                <p className="text-[10px] font-mono font-bold text-slate-400 mt-4 tracking-widest bg-white px-4 py-2 rounded-full shadow-inner border border-slate-100 font-normal">NIP. 19820512 201001 1 005</p>
+                            </div>
+                            <button className="bg-white border-2 border-slate-100 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-95 font-normal">Sunting Data</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+const SettingsView = () => (
+    <div className="max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 font-normal">
+        <div>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight uppercase mb-8 font-normal">Preferensi Sistem</h2>
+            <div className="bg-white border-2 border-slate-100 rounded-[2rem] divide-y divide-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden font-normal">
+                <div className="p-8 flex items-center justify-between hover:bg-slate-50 transition-all cursor-pointer group active:bg-slate-100 font-normal">
+                    <div>
+                        <p className="font-extrabold text-slate-800 uppercase tracking-widest text-[10px] mb-1 font-normal">Identitas & Kop Surat</p>
+                        <p className="text-sm text-slate-500 font-medium font-normal">Logo Tuban, Nama Instansi, dan Template Header.</p>
+                    </div>
+                    <ChevronRight className="text-slate-300 group-hover:text-blue-600 transition-all duration-300 group-hover:translate-x-1" />
+                </div>
+                <div className="p-8 flex items-center justify-between hover:bg-slate-50 transition-all cursor-pointer group active:bg-slate-100 font-normal">
+                    <div>
+                        <p className="font-extrabold text-slate-800 uppercase tracking-widest text-[10px] mb-1 font-normal">Keamanan Akun</p>
+                        <p className="text-sm text-slate-500 font-medium font-normal">Kredensial administrator dan log akses sistem.</p>
+                    </div>
+                    <ChevronRight className="text-slate-300 group-hover:text-blue-600 transition-all duration-300 group-hover:translate-x-1" />
+                </div>
+                <div className="p-8 flex items-center justify-between bg-blue-50/30 font-normal">
+                    <div>
+                        <p className="font-extrabold text-blue-700 uppercase tracking-widest text-[10px] mb-1 font-normal">Basis Data Aktif</p>
+                        <p className="text-sm text-slate-500 font-medium tracking-tight font-normal">Menentukan filter data arsip tahun anggaran berjalan.</p>
+                    </div>
+                    <div className="bg-blue-600 text-white px-5 py-2 rounded-2xl text-xs font-black shadow-xl shadow-blue-500/30 border border-blue-400 font-normal">2026</div>
+                </div>
+            </div>
+        </div>
+
+        <div className="p-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-[2.5rem] shadow-2xl shadow-orange-500/20 relative overflow-hidden group font-normal">
+             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000"></div>
+             <h4 className="text-white font-extrabold uppercase tracking-widest flex items-center gap-3 relative z-10 text-sm font-normal">
+                <MailWarning size={20} className="animate-pulse font-normal" /> Pemeliharaan Arsip
+             </h4>
+             <p className="text-orange-50 mt-3 font-medium relative z-10 leading-relaxed text-sm font-normal">Cadangkan database tahunan ke format terenkripsi untuk menjaga integritas data arsip digital Kecamatan Grabagan.</p>
+             <button className="mt-8 bg-white text-orange-600 px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all relative z-10 active:scale-95 font-normal">Unduh Cadangan Data (.SQL)</button>
+        </div>
+    </div>
+);
+
+export default App;
