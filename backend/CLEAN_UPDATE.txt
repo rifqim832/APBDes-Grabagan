@@ -1,0 +1,9 @@
+DONE:
+- Filtered out Helper Rows (1, 2, 3...) using length check.
+- Filtered out Duplicates using Set logic.
+- Maintains Super Dynamic Column detection.
+
+ACTION:
+1. Restart Backend.
+2. Upload File.
+3. Enjoy clean data.

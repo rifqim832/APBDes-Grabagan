@@ -1,0 +1,8 @@
+DONE:
+- Re-ran `node prisma/seed.js` to ensure Village data exists in DB.
+- Updated `BuatSurat.jsx` to safely fetch and map village list.
+
+ACTION:
+1. Restart Backend (just in case).
+2. Refresh Browser.
+3. Check "Desa" dropdown - should now list 11 villages.

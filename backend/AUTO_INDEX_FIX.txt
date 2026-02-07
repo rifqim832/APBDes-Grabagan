@@ -1,0 +1,11 @@
+DONE:
+- Updated `parsingController.js` to use an Auto-Increment Counter.
+- If the 'No' column in Excel is empty or invalid, the backend now automatically assigns 1, 2, 3...
+- This ensures the table always has a valid number sequence.
+
+ACTION:
+1. Since we modified the backend logic, **restart the backend server**:
+   - Ctrl+C in the backend terminal.
+   - Run `node server.js` again.
+2. Upload your Excel file again.
+3. Check the Preview table; the "No" column should now be populated correctly.

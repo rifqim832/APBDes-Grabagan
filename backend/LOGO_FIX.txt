@@ -1,0 +1,7 @@
+DONE:
+- Imported `logo.png` correctly in BuatSurat.jsx.
+- Replaced relative path with imported variable.
+
+ACTION:
+1. Refresh Browser.
+2. Check Letter Preview (Logo should now appear).

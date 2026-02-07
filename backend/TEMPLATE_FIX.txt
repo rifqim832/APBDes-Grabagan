@@ -1,0 +1,16 @@
+ISSUE:
+The file `public/assets/template.docx` exists but is EMPTY (0 bytes).
+This causes the "Corrupted zip" error because an empty file is not a valid Word document.
+
+ACTION:
+1. Locate your actual Word template file (.docx).
+2. Copy it to `c:\Coding\APBDes_Grabagan\APBDes-Grabagan\frontend\public\assets\template.docx`.
+3. Replace the existing empty file.
+4. Refresh browser and try downloading again.
+
+NOTE:
+Ensure your template has placeholders like:
+- {desa}
+- {nomor_surat}
+- {tanggal}
+- {#spm_list} ... {/spm_list} (for the table)

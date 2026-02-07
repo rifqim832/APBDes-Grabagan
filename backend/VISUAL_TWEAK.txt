@@ -1,0 +1,7 @@
+DONE:
+- Added Visual Helper Row (1, 2, 3, 4, 5) to Frontend Preview.
+- Helper Row is NOT sent to database.
+
+ACTION:
+1. Refresh Browser.
+2. Check Preview (Table now looks identical to physical letter).

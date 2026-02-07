@@ -1,0 +1,7 @@
+DONE:
+- Renamed folder `aseets` -> `assets` in public/.
+- The error happened because the system got a 404 (HTML) instead of the .docx (ZIP) file.
+
+ACTION:
+1. Refresh Browser.
+2. Click "Download DOCX" again. It should work now.

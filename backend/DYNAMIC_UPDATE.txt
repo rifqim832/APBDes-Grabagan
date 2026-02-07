@@ -1,0 +1,9 @@
+DONE:
+- Backend now SEARCHES for "No" and "Nomor SPM" instead of assuming Row 18.
+- Metadata extractions removed (Village/LetterNo now manual).
+- Flexible for different header lengths.
+
+ACTION:
+1. Restart Backend (node server.js).
+2. Upload File.
+3. Check backend log if issues persist (will say "Header found at row X").

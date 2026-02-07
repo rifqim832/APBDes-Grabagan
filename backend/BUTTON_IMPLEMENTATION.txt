@@ -1,0 +1,9 @@
+DONE:
+- Implemented "Download DOCX" (requires template.docx in public/assets).
+- Implemented "Cetak & Arsipkan" (saves to DB + window.print()).
+- Installed necessary frontend libraries.
+
+ACTION:
+1. Refresh Browser.
+2. Ensure you have `public/assets/template.docx` if you want DOCX download to work.
+3. Try "Cetak & Arsipkan" - it will try to save and then open print dialog.

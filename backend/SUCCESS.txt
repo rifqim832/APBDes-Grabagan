@@ -1,0 +1,19 @@
+SUCCESS! The fix is verified.
+
+I created and ran a test script `test_upload.js` that mimics your Excel file's structure (Data starts at Row 18, Col E=Desc, Col H=Amount).
+The backend successfully parsed it:
+{
+  "success": true,
+  "data": {
+    "activities": [
+      { "description": "Pembangunan Jalan Usaha Tani", "amount": 6000000 },
+      { "description": "Operasional Posyandu", "amount": 4500000 }
+    ],
+    "totalBudget": 10500000
+  }
+}
+
+You can now confidently RESTART the backend server and upload your actual file.
+1. Ctrl+C in backend terminal.
+2. `node server.js`
+3. Upload file.

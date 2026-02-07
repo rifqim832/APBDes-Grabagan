@@ -1,0 +1,7 @@
+DONE:
+- Fixed a syntax error in `parsingController.js` (an extra `}` brace).
+- This was an accidental typo during the "Stop Word" update.
+
+ACTION:
+1. **Restart the backend server** (Ctrl+C, then `node server.js`).
+2. Upload your file again. It should parse (and stop at footers) correctly now.

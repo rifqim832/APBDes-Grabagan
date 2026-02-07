@@ -1,0 +1,7 @@
+DONE:
+- Imported `logo.png` in Sidebar.jsx.
+- Replaced logoUrl prop with local import.
+
+ACTION:
+1. Refresh Browser.
+2. Check Sidebar (Logo should now appear).

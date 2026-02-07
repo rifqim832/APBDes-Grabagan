@@ -1,0 +1,9 @@
+DONE:
+- Implemented "Stop Word Detection" in `parsingController.js`.
+- The parser will now STOP automatically when it sees words like "JUMLAH", "TOTAL", "DEMIKIAN", "MENGETAHUI", or "LAMPIRAN".
+- This prevents footer text and summary rows from being added to the table.
+
+ACTION:
+1. **Restart the backend server** (Ctrl+C, then `node server.js`).
+2. Upload your file again.
+3. The preview table should now be clean, ending exactly at the last valid data row.

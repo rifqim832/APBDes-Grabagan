@@ -1,0 +1,7 @@
+DONE:
+- Fixed a backend error: `TypeError: Cannot read properties of null (reading 'result')`.
+- This happened because an empty cell was being treated as an object (Excel behavior) but was actually null.
+
+ACTION:
+1. **Restart the backend server** (Ctrl+C, then `node server.js`).
+2. Upload your file again. It should parse correctly now.

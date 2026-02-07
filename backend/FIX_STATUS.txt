@@ -1,0 +1,10 @@
+FIX APPLIED:
+The backend parsing logic has been updated to match your Excel template.
+- Starts reading at Row 18.
+- Reads 'Kegiatan' from Column E.
+- Reads 'Anggaran' from Column H.
+- Handles '6.000.000' format correctly.
+
+ACTION REQUIRED:
+1. Restart the backend server (Ctrl+C, then 'node server.js').
+2. Try uploading the file again.

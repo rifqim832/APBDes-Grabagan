@@ -1,0 +1,10 @@
+DONE:
+- Updated the main letter paragraph to the requested text.
+- Replaced placeholders with dynamic variables:
+  - [Nama Desa] -> {selectedVillage}
+  - [tanggal] -> {letterDate (formatted)}
+  - [Nomo Surat Permohonan] -> {incomingLetterNo}
+
+ACTION:
+1. Refresh Browser.
+2. Verify the text in Preview.

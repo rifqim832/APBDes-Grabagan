@@ -1,0 +1,10 @@
+DONE:
+- Implemented "Header Mapping" logic.
+- System SCANS for 'No', 'SPM', 'Kegiatan', 'Anggaran' in ANY column.
+- Automatically handles MERGED cells (like E-F).
+- Automatically handles FORMULAS in Anggaran.
+
+ACTION:
+1. Restart Backend (node server.js).
+2. Upload ANY Excel file (as long as it has those headers).
+3. Check backend log: "Header found at Row X: { no: 2, spm: 4, ... }"
