@@ -1,0 +1,10 @@
+DONE:
+- Configured the system to **Print ONLY the Letter**.
+- When you click "Cetak Dokumen", the browser's print dialog will open showing ONLY the clean A4 letter, hiding all buttons, sidebars, and menus.
+- Added support for background colors (like the helper row shading) to be preserved in print.
+
+ACTION:
+1. Refresh Browser.
+2. Go to the final step.
+3. Click "Cetak Dokumen".
+4. Check the print preview -> It should show a perfect A4 letter.

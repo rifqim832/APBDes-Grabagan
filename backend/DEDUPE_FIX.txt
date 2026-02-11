@@ -1,0 +1,13 @@
+DONE:
+- Fixed the duplication issue ("Tunjangan... Tunjangan... Tunjangan...").
+- The parser now checks if a cell is merged.
+- If merged (e.g., E-G), it only reads data from the **Master Cell (E)** and ignores the clones in F and G.
+- Scan Area logic remains intact, so it still works for scattered or single-cell data (rows 14, 25, 26).
+
+ACTION:
+1. **Restart Backend** (Ctrl+C -> `node server.js`).
+2. Refresh Frontend.
+3. Upload "REKOM DERMAWU.xlsx" once more.
+4. Verify that:
+   - "Kegiatan" text is complete.
+   - There are NO duplicate phrases.

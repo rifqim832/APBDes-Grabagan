@@ -1,0 +1,10 @@
+DONE:
+- Removed the stuck "039" (it was hardcoded).
+- Now the "Nomor Surat Keluar" uses the Auto-Increment value (001...) from the database.
+- It is now an **Input Field** in the preview, so you can manually change it (e.g. to 005) if needed.
+- Format: `900 / [001] / 414.420 / 2026`.
+
+ACTION:
+1. Refresh Browser.
+2. The number should start at 001.
+3. You can click on "001" to edit it.

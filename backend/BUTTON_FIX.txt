@@ -1,0 +1,10 @@
+DONE:
+- **Finalisasi & Arsip:** The "Finalisasi Dokumen" button (Step 4) now automatically **Archives** the letter to the database before moving to the final step.
+- **Cetak Dokumen:** The "Cetak & Arsipkan" button (Step 5) has been renamed to **"Cetak Dokumen"** and now ONLY prints the surat (since it's already archived).
+
+ACTION:
+1. Refresh Browser.
+2. Go through the steps.
+3. Click "Finalisasi & Arsip" -> Data saved to DB.
+4. Click "Cetak Dokumen" -> Opens Print Dialog.
+5. Check Database (Dashboard) -> The letter should appear there.

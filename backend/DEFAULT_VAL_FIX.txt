@@ -1,0 +1,6 @@
+DONE:
+- Changed the default "Sifat Surat" from "Segera" to "Penting".
+
+ACTION:
+1. Refresh Browser.
+2. The "Sifat Surat" dropdown should now default to "Penting".

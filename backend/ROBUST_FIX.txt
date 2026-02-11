@@ -1,0 +1,10 @@
+DONE:
+- Implemented **Scan Area (Anchor-based)** parsing significantly improving robustness.
+- The parser now ignores strict column mapping for "Kegiatan" and instead scans EVERYTHING between "Nomor SPM" and "Anggaran".
+- This solves the issue where non-merged cells (like in row 14, 25, 26) were being missed because they were in a different column than expected.
+
+ACTION:
+1. **Restart Backend** (Ctrl+C -> `node server.js`).
+2. Refresh Frontend.
+3. Upload "REKOM DERMAWU.xlsx" again.
+4. Check the preview table. All rows (including 14, 25, 26) should now have their "Kegiatan" text fully visible.

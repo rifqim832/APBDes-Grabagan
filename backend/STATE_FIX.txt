@@ -1,0 +1,9 @@
+DONE:
+- Added state handling for "Sifat Surat".
+- The dropdown menu in Step 1 now updates the Preview in Step 4.
+- Also passed `{sifat}` to the Word template generator, so if your template uses `{sifat}`, it will be filled automatically.
+
+ACTION:
+1. Refresh Browser.
+2. Change "Sifat Surat" to "Penting" or "Biasa".
+3. Verify that the "Pratinjau" (Preview) updates to match your selection.

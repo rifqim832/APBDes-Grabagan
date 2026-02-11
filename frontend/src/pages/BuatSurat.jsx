@@ -15,7 +15,7 @@ import {
     Plus
 } from 'lucide-react';
 
-import { getDesa, uploadExcel, createSurat } from '../services/api';
+import { getDesa, uploadExcel, createLetters, getLastSuratNumber, getOfficial } from '../services/api';
 import logo from '../assets/logo.png';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
@@ -23,7 +23,9 @@ import { saveAs } from 'file-saver';
 
 const BuatSurat = ({ logoUrl }) => {
     const [villages, setVillages] = useState([]);
+    const [allVillages, setAllVillages] = useState([]);
     const [step, setStep] = useState(1);
+    const [official, setOfficial] = useState(null);
 
     React.useEffect(() => {
         const fetchDesa = async () => {
@@ -31,20 +33,45 @@ const BuatSurat = ({ logoUrl }) => {
                 const data = await getDesa();
                 // Ensure data is array and map to names
                 if (Array.isArray(data)) {
-                    setVillages(data.map(d => d.nama));
+                    setAllVillages(data);
+                    setVillages(data.map(d => d.name));
                 }
             } catch (error) {
                 console.error("Error fetching villages:", error);
             }
         };
+
+        const fetchLastNumber = async () => {
+            try {
+                const res = await getLastSuratNumber();
+                if (res && res.nextNumber) {
+                    setOutgoingLetterNo(res.nextNumber);
+                }
+            } catch (error) {
+                console.error("Error fetching last number:", error);
+            }
+        };
+
         fetchDesa();
+        fetchLastNumber();
+        getOfficial().then(setOfficial).catch(console.error);
     }, []);
     const [isParsing, setIsParsing] = useState(false);
     const [parsedData, setParsedData] = useState({ activities: [], totalBudget: 0 });
 
     const [selectedVillage, setSelectedVillage] = useState("");
-    const [sequenceNum, setSequenceNum] = useState("001");
+    // Separate Auto-Increment (Outgoing) and Excel Reference (Incoming)
+    const [outgoingLetterNo, setOutgoingLetterNo] = useState("001");
+    const [incomingLetterNo, setIncomingLetterNo] = useState("");
+    const [letterNature, setLetterNature] = useState("Penting");
+    const [letterSubject, setLetterSubject] = useState("Pengantar Pencairan APBDes Desa [Nama Desa]");
     const [letterDate, setLetterDate] = useState(new Date().toISOString().split('T')[0]);
+
+    React.useEffect(() => {
+        if (selectedVillage && letterSubject.includes("[Nama Desa]")) {
+            setLetterSubject(prev => prev.replace("[Nama Desa]", selectedVillage));
+        }
+    }, [selectedVillage]);
 
     const villageCodes = {
         "Banyubang": "414.420.05", "Dahor": "414.420.06", "Dermawuharjo": "414.420.08",
@@ -57,6 +84,23 @@ const BuatSurat = ({ logoUrl }) => {
         try {
             const result = await uploadExcel(file);
             setParsedData(result.data);
+
+            if (result.metadata) {
+                if (result.metadata.desa) {
+                    const foundVillage = Object.keys(villageCodes).find(v =>
+                        v.toLowerCase() === result.metadata.desa.toLowerCase()
+                    );
+                    if (foundVillage) setSelectedVillage(foundVillage);
+                }
+
+                if (result.metadata.nomorSurat) {
+                    const parts = result.metadata.nomorSurat.split('/');
+                    if (parts.length > 1) {
+                        const seq = parts[1].trim();
+                        if (seq) setIncomingLetterNo(seq);
+                    }
+                }
+            }
 
             setTimeout(() => {
                 setIsParsing(false);
@@ -109,23 +153,57 @@ const BuatSurat = ({ logoUrl }) => {
     const handleDownloadDocx = async () => {
         try {
             // Load template
-            const response = await fetch("./assets/template.docx");
-            if (!response.ok) throw new Error("Template file not found");
+            // Load template with cache busting to prevent stale 404s
+            const response = await fetch(`/assets/template_surat_keluar.docx?t=${new Date().getTime()}`);
+
+            if (!response.ok) {
+                console.error("Template fetch failed:", response.status, response.statusText);
+                throw new Error(`Template file not found at ${response.url} (Status: ${response.status})`);
+            }
+
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.toLowerCase().includes("text/html")) {
+                throw new Error(`Template path returned HTML (likely 404 Page) instead of DOCX. Please ensure 'public/assets/template_surat_keluar.docx' exists.`);
+            }
 
             const content = await response.arrayBuffer();
             if (content.byteLength === 0) {
-                throw new Error("Template file is empty (0 bytes). Please replace 'public/assets/template.docx' with a valid Word document.");
+                throw new Error("Template file is empty (0 bytes). Please replace 'public/assets/template_surat_keluar.docx' with a valid Word document.");
+            }
+
+            // Check signature (PK \x03 \x04)
+            const view = new Uint8Array(content);
+            if (view[0] !== 0x50 || view[1] !== 0x4B || view[2] !== 0x03 || view[3] !== 0x04) {
+                console.warn("File signature mismatch! First 4 bytes:", view.slice(0, 4));
+                // Throw to prevent PizZip confusing error
+                throw new Error("File is corrupted or not a valid DOCX/Zip file (Invalid Signature).");
             }
 
             const zip = new PizZip(content);
             const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
 
+            // Format numbers for template
+            const formattedActivities = parsedData.activities.map(item => ({
+                ...item,
+                anggaran: item.anggaran ? Number(item.anggaran).toLocaleString('id-ID') : "0"
+            }));
+
             doc.render({
-                nomor_surat: incomingLetterNo,
+                nomor_surat: outgoingLetterNo,
+                nomor_masuk: incomingLetterNo,
+                sifat: letterNature,
+                perihal: letterSubject,
                 desa: selectedVillage,
+                kode_desa: currentVillageCode,
+                tahun: new Date(letterDate).getFullYear(),
                 tanggal: new Date(letterDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
-                spm_list: parsedData.activities, // Array for loop
-                total_budget: parsedData.totalBudget.toLocaleString('id-ID')
+                spm_list: formattedActivities,
+                total_budget: parsedData.totalBudget.toLocaleString('id-ID'),
+                total_anggaran: parsedData.totalBudget.toLocaleString('id-ID'),
+                status_camat: official?.status === "Plt." ? "Plt. " : "",
+                nama_camat: official?.name || "H. SUWANTO, S.STP, M.M",
+                pangkat_camat: official?.rank || "Pembina Tingkat I",
+                nip_camat: official?.nip || "19780101 200501 1 012"
             });
 
             const out = doc.getZip().generate({
@@ -140,32 +218,37 @@ const BuatSurat = ({ logoUrl }) => {
         }
     };
 
-    const handlePrintAndArchive = async () => {
+    const handleFinalize = async () => {
         try {
-            // 1. Archive to Database
-            /* Note: createSurat API needs to be implemented/checked if it accepts this payload */
-            await createSurat({
-                nomor: outgoingLetterNo,
-                perihal: "Rekomendasi Pencairan DD Tahun 2026",
-                tanggal: letterDate,
-                desaId: "1", // Needs logic to find ID from name, for now user ID logic or backend lookup
-                // Using placeholder '1' or valid ID is crucial, or pass name if backend supports it
-                anggaran: parsedData.totalBudget
+            // Find Village ID
+            const desaObj = allVillages.find(v => v.name === selectedVillage);
+            const villageId = desaObj ? desaObj.id : 1;
+
+            // Archive to Database (Integrasi Data Transaksional)
+            // Satu kali klik menyimpan: IncomingLetter + OutgoingLetter + SpmEntries
+            await createLetters({
+                referenceNo: incomingLetterNo,
+                letterNo: outgoingLetterNo,
+                subject: letterSubject,
+                letterDate: letterDate,
+                villageId: villageId,
+                totalBudget: parsedData.totalBudget,
+                activities: parsedData.activities
             });
 
-            // 2. Print
-            window.print();
+            // Move to Final Step
+            setStep(5);
         } catch (error) {
             console.error("Archive Error:", error);
-            // Fallback print even if archive fails? Or alert?
-            // alert("Gagal mengarsipkan, mencetak lokal saja.");
-            window.print();
+            alert("Gagal mengarsipkan dokumen: " + error.message);
         }
     };
 
+    const handlePrintOnly = () => {
+        window.print();
+    };
+
     const currentVillageCode = selectedVillage ? villageCodes[selectedVillage] : "414.420.XX";
-    const incomingLetterNo = `900/${sequenceNum}/${currentVillageCode}/2026`;
-    const outgoingLetterNo = `900/039/414.420/2026`;
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -246,21 +329,25 @@ const BuatSurat = ({ logoUrl }) => {
                                         type="text"
                                         placeholder="001"
                                         className="w-28 border-2 border-slate-100 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-center font-normal text-slate-800 bg-slate-50/50 transition-all shadow-sm"
-                                        value={sequenceNum}
-                                        onChange={(e) => setSequenceNum(e.target.value)}
+                                        value={incomingLetterNo}
+                                        onChange={(e) => setIncomingLetterNo(e.target.value)}
                                     />
                                     <div className="flex-1 bg-slate-100 border border-slate-200 px-4 py-3.5 rounded-2xl text-slate-400 font-mono text-[11px] font-bold flex items-center overflow-hidden whitespace-nowrap font-normal">
-                                        /{currentVillageCode}/2026
+                                        /{currentVillageCode}/{new Date().getFullYear()}
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Sifat Surat</label>
-                                <select className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat transition-all shadow-sm">
-                                    <option>Segera</option>
-                                    <option>Penting</option>
-                                    <option>Biasa</option>
+                                <select
+                                    className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_1rem_center] bg-no-repeat transition-all shadow-sm"
+                                    value={letterNature}
+                                    onChange={(e) => setLetterNature(e.target.value)}
+                                >
+                                    <option value="Segera">Segera</option>
+                                    <option value="Penting">Penting</option>
+                                    <option value="Biasa">Biasa</option>
                                 </select>
                             </div>
 
@@ -268,7 +355,8 @@ const BuatSurat = ({ logoUrl }) => {
                                 <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 px-1 font-normal">Perihal Rekomendasi</label>
                                 <textarea
                                     className="w-full border-2 border-slate-100 p-5 rounded-2xl h-28 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none font-normal text-slate-700 bg-slate-50/50 transition-all shadow-sm resize-none"
-                                    defaultValue="Rekomendasi Pencairan Dana Desa (DD) Tahap II Tahun Anggaran 2026"
+                                    value={letterSubject}
+                                    onChange={(e) => setLetterSubject(e.target.value)}
                                 ></textarea>
                             </div>
                         </div>
@@ -352,15 +440,15 @@ const BuatSurat = ({ logoUrl }) => {
                         </div>
 
                         <div className="bg-slate-200 p-10 rounded-3xl border-8 border-white shadow-inner flex justify-center overflow-x-auto">
-                            {/* A4 Simulator - Updated to font-sans (Inter) */}
-                            <div className="bg-white w-full max-w-[800px] min-h-[1100px] p-[2.5cm] shadow-2xl text-[12px] space-y-6 relative text-black leading-snug font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            {/* F4 Simulator - Updated to font-sans (Inter) */}
+                            <div className="printable-area bg-white w-full max-w-[210mm] min-h-[330mm] p-[2.5cm] shadow-2xl text-[12px] space-y-6 relative text-black leading-snug font-sans box-border" style={{ fontFamily: "'Inter', sans-serif" }}>
                                 {/* Kop Surat */}
                                 <div className="flex items-center border-b-[4px] border-double border-black pb-2 mb-6">
                                     <img src={logo} alt="Logo" className="w-24 h-24 object-contain mr-6" />
                                     <div className="text-center flex-1 pr-16 font-sans">
                                         <h4 className="font-bold text-lg pb-1 uppercase tracking-tight leading-none">Pemerintah Kabupaten Tuban</h4>
                                         <h4 className="font-bold text-xl pb-1 uppercase tracking-tighter leading-tight">Kecamatan Grabagan</h4>
-                                        <p className="text-[11px] pb-1 font-normal italic leading-normal">Jl. Raya Grabagan, Email: kecamatan.grabagan@gmail.com, Kode Pos 62372</p>
+                                        <p className="text-[11px] pb-1 font-normal italic leading-normal">Jl. Raya Grabagan, Email: kecamatan.grabagan@gmail.com, Kode Pos 62373</p>
                                         <div className="flex justify-center">
                                             <div className="pb-1 font-bold text-lg uppercase tracking-[0.2em]">Grabagan</div>
                                         </div>
@@ -369,10 +457,22 @@ const BuatSurat = ({ logoUrl }) => {
 
                                 <div className="flex justify-between items-start font-sans">
                                     <div className="w-[50%] space-y-1">
-                                        <p className="flex items-start"><span className="w-20">Nomor</span>: <span className="font-bold ml-1 flex-1">{outgoingLetterNo}</span></p>
-                                        <p className="flex items-start"><span className="w-20">Sifat</span>: <span className="ml-1 flex-1">Segera</span></p>
+                                        <p className="flex items-center text-sm">
+                                            <span className="w-20">Nomor</span>:
+                                            <span className="font-bold ml-1 flex items-center">
+                                                900/
+                                                <input
+                                                    type="text"
+                                                    value={outgoingLetterNo}
+                                                    onChange={(e) => setOutgoingLetterNo(e.target.value)}
+                                                    className="w-6 text-center border-slate-400 focus:border-blue-500 outline-none mx-1 bg-transparent"
+                                                />
+                                                /414.420/{new Date().getFullYear()}
+                                            </span>
+                                        </p>
+                                        <p className="flex items-start"><span className="w-20">Sifat</span>: <span className="ml-1 flex-1">{letterNature}</span></p>
                                         <p className="flex items-start"><span className="w-20">Lampiran</span>: <span className="ml-1 flex-1">-</span></p>
-                                        <p className="flex items-start font-bold"><span className="w-20 tracking-tight">Perihal</span>: <span className="ml-1 flex-1 underline decoration-1 underline-offset-4">Rekomendasi Pencairan DD Tahun 2026</span></p>
+                                        <p className="flex items-start font-bold"><span className="w-20 tracking-tight">Perihal</span>: <span className="ml-1 flex-1 underline decoration-1 underline-offset-4">{letterSubject}</span></p>
                                     </div>
                                     <div className="text-right">
                                         <p className="mb-6 font-medium">Grabagan, {new Date(letterDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -386,7 +486,7 @@ const BuatSurat = ({ logoUrl }) => {
                                 </div>
 
                                 <p className="indent-[1.5cm] text-justify leading-relaxed mt-10">
-                                    Berdasarkan surat Kepala Desa <span className="font-bold">{selectedVillage || "[Nama Desa]"}</span> tanggal <span className="font-bold">{new Date(letterDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span> Nomor: <span className="font-bold">{incomingLetterNo}</span> Perihal permohonan pengantar pencairan rekening kas desa, maka bersama ini kami sampaikan kepada Cabang Pembantu Bank Jatim Cabang Tuban di Rengel, untuk melakukan pencairan dana dari Rekening Kas Desa <span className="font-bold">{selectedVillage || "[Nama Desa]"}</span>, sesuai SPM sebagai berikut:
+                                    Berdasarkan surat Kepala Desa <span className="font-bold">{selectedVillage || "[Nama Desa]"}</span> tanggal <span className="font-bold">{new Date(letterDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span> Nomor: <span className="font-bold">900/{incomingLetterNo || '...'}/{currentVillageCode}/{new Date().getFullYear()}</span> Perihal permohonan pengantar pencairan rekening kas desa, maka bersama ini kami sampaikan kepada Cabang Pembantu Bank Jatim Cabang Tuban di Rengel, untuk melakukan pencairan dana dari Rekening Kas Desa <span className="font-bold">{selectedVillage || "[Nama Desa]"}</span>, sesuai SPM sebagai berikut:
                                 </p>
 
                                 {/* Table SPM with 5 Columns: NO, NOMOR SPM, KEGIATAN, ANGGARAN, KETERANGAN */}
@@ -430,11 +530,11 @@ const BuatSurat = ({ logoUrl }) => {
 
                                 <div className="flex justify-end">
                                     <div className="text-center w-[250px] space-y-1 font-sans">
-                                        <p className="font-bold uppercase tracking-tight">Camat Grabagan</p>
+                                        <p className="font-bold uppercase tracking-tight">{official?.status === "Plt." ? "Plt. " : ""}Camat Grabagan</p>
                                         <div className="h-[2.5cm]"></div>
-                                        <p className="font-bold underline text-[14px] uppercase tracking-tighter">H. SUWANTO, S.STP, M.M</p>
-                                        <p className="font-normal text-[10px] uppercase tracking-wide">Pembina Tingkat I</p>
-                                        <p className="font-normal text-[10px] tracking-widest">NIP. 19780101 200501 1 012</p>
+                                        <p className="font-bold underline text-[14px] uppercase tracking-tighter">{official?.name || "H. SUWANTO, S.STP, M.M"}</p>
+                                        <p className="font-normal text-[10px] uppercase tracking-wide">{official?.rank || "Pembina Tingkat I"}</p>
+                                        <p className="font-normal text-[10px] tracking-widest">NIP. {official?.nip || "19780101 200501 1 012"}</p>
                                     </div>
                                 </div>
                             </div>
@@ -454,7 +554,7 @@ const BuatSurat = ({ logoUrl }) => {
                             <h3 className="text-4xl font-black text-slate-800 uppercase tracking-tight font-normal">Pengarsipan Selesai!</h3>
                             <p className="text-slate-500 font-medium text-lg font-normal">Dokumen rekomendasi telah diterbitkan dengan nomor arsip kecamatan:</p>
                             <div className="inline-block bg-slate-900 text-blue-400 font-mono text-2xl font-black px-8 py-4 rounded-[1.5rem] border border-slate-700 shadow-2xl font-normal">
-                                {outgoingLetterNo}
+                                900/{outgoingLetterNo}/414.420/{new Date().getFullYear()}
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-5 justify-center mt-12 font-normal">
@@ -464,9 +564,9 @@ const BuatSurat = ({ logoUrl }) => {
                                 <Download size={20} /> Download DOCX
                             </button>
                             <button
-                                onClick={handlePrintAndArchive}
+                                onClick={handlePrintOnly}
                                 className="bg-blue-600 text-white px-10 py-5 rounded-2xl flex items-center justify-center gap-3 font-extrabold shadow-2xl shadow-blue-500/30 hover:bg-blue-700 hover:scale-105 transition-all uppercase tracking-widest text-xs active:scale-95 border border-blue-400 font-normal">
-                                <Printer size={20} /> Cetak & Arsipkan
+                                <Printer size={20} /> Cetak Dokumen
                             </button>
                         </div>
                         <div className="pt-10 font-normal">
@@ -497,11 +597,17 @@ const BuatSurat = ({ logoUrl }) => {
                             </button>
                         ) : (
                             <button
-                                onClick={() => setStep(s => Math.min(5, s + 1))}
+                                onClick={() => {
+                                    if (step === 4) {
+                                        handleFinalize();
+                                    } else {
+                                        setStep(s => Math.min(5, s + 1));
+                                    }
+                                }}
                                 disabled={step === 1 && !selectedVillage}
                                 className={`bg-blue-600 text-white px-10 py-3.5 rounded-2xl flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-105 transition-all font-black uppercase tracking-widest text-xs active:scale-95 font-normal ${step === 3 && 'hidden'} ${step === 1 && !selectedVillage ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {step === 4 ? 'Finalisasi Dokumen' : 'Lanjutkan'} <ArrowRight size={16} />
+                                {step === 4 ? 'Finalisasi & Arsip' : 'Lanjutkan'} <ArrowRight size={16} />
                             </button>
                         )}
                     </div>

@@ -1,0 +1,8 @@
+DONE:
+- Fixed the template fetch path from `./assets/template.docx` to `/assets/template.docx`.
+- The relative path (`./`) was causing the app to load `index.html` (404 fallback) instead of the actual file, creating a "Corrupted zip" error because HTML is not a valid Zip.
+
+ACTION:
+1. Refresh Browser.
+2. Try "Download DOCX" again.
+3. If it still fails, check the browser console (F12) for the exact URL being fetched. It should now be `http://localhost:1420/assets/template.docx`.

@@ -1,0 +1,9 @@
+DONE:
+- Fixed the "sequenceNum is not defined" crash.
+- This happened because I renamed `sequenceNum` to `incomingLetterNo` but forgot to update the input field in Step 1 (Info Header).
+
+ACTION:
+1. Refresh Browser.
+2. The page should load correctly now.
+3. Step 1 (Info Header) now correctly asks for "No. Surat Permohonan" (which will be `incomingLetterNo`).
+4. Step 5 (Finished) will show the Auto-Incremented "Nomor Surat Keluar".

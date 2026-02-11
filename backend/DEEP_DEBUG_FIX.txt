@@ -1,0 +1,9 @@
+DONE:
+- Added advanced debugging logic to `handleDownloadDocx`.
+- The code now checks if the server returned HTML (Page Not Found) or if the file signature is invalid (Corrupted).
+- This will prevent the confusing "Can't find end of central directory" PizZip error and show a real reason instead.
+
+ACTION:
+1. Hard Refresh (Ctrl+F5).
+2. Click "Download DOCX".
+3. If it fails, read the specific error message shown in the popup. It will guide us to the exact problem.

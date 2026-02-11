@@ -1,0 +1,10 @@
+DONE:
+- "Perihal" (Subject) is now dynamic and linked to the input form.
+- The placeholder `[Nama Desa]` will automatically change to the actual village name once you upload the Excel file in Step 2.
+- The preview matches the input exactly.
+
+ACTION:
+1. Refresh Browser.
+2. Step 1: You can see the Perihal input.
+3. Step 2: Upload Excel -> The "[Nama Desa]" in Perihal should change to the village name (e.g., Grabagan).
+4. Step 4: Verify the preview shows the correct Perihal.

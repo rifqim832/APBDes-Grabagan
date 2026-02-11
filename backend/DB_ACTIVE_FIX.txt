@@ -1,0 +1,14 @@
+DONE:
+- Activated "Surat Keluar" and "Surat Masuk" pages using live database data.
+- Updated the Database Schema to support "Letter Type" (MASUK/KELUAR) and "Anggaran".
+- When you click "Finalisasi & Arsip" in the Create Letter flow:
+  1. It saves a **Surat Keluar** record (The Recommendation Letter).
+  2. It saves a **Surat Masuk** record (The Application Letter from Desa).
+- Both pages ("Surat Keluar" and "Surat Masuk") now fetch and display this data automatically.
+
+ACTION (IMPORTANT):
+1. **Restart Backend Terminal**: Press `Ctrl+C` in the terminal where `node server.js` is running, then run `node server.js` again. (I may have done this automatically, but good to check).
+2. **Refresh Browser**.
+3. Create a new letter.
+4. Go to "Surat Keluar" menu -> See your new letter.
+5. Go to "Surat Masuk" menu -> See the corresponding incoming letter.

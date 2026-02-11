@@ -39,96 +39,104 @@ exports.parseExcel = async (req, res) => {
         let stopParsing = false; // Flag to stop parsing upon footer detection
 
         worksheet.eachRow((row, rowNumber) => {
-            // 1. CARI HEADER (Jika belum ketemu)
+            if (stopParsing) return;
+            const rowStr = row.values.join(" ").toLowerCase();
+
+            // 1. CARI HEADER (Dynamic Column Mapping)
             if (!headerFound) {
                 row.eachCell((cell, colNumber) => {
                     const val = cell.value?.toString().toLowerCase().trim() || "";
                     if (val === 'no') colMap.no = colNumber;
-                    if (val.includes('nomor spm') || (val.includes('spm') && val.length < 15)) colMap.spm = colNumber;
-                    if (val.includes('kegiatan')) colMap.kegiatan = colNumber;
+                    if (val.includes('nomor spm')) colMap.spm = colNumber;
+                    // 'kegiatan' is implicit, between SPM and Anggaran
                     if (val.includes('anggaran') || val.includes('jumlah') || val.includes('nilai')) colMap.anggaran = colNumber;
                     if (val === 'ket' || val.includes('keterangan')) colMap.ket = colNumber;
                 });
 
-                // Set header found if critical columns exist
-                if (colMap.no !== -1 && (colMap.spm !== -1 || colMap.kegiatan !== -1) && colMap.anggaran !== -1) {
+                if (colMap.no !== -1 && colMap.spm !== -1 && colMap.anggaran !== -1) {
                     console.log(`Header found at Row ${rowNumber}:`, colMap);
                     headerFound = true;
-                    dataStartRow = rowNumber + 1;
-                } else {
-                    // Reset to avoid partial match (safe since headers usually align)
-                    colMap = { no: -1, spm: -1, kegiatan: -1, anggaran: -1, ket: -1 };
+                    // We don't need explicit 'kegiatan' column anymore because we SCAN between SPM and Anggaran
                 }
                 return;
             }
 
-            // 2. DETEKSI KATA PENGHENTI (STOP WORDS)
-            if (stopParsing) return;
-
-            const rowStr = row.values.join(" ").toLowerCase();
-            const stopWords = ["jumlah", "total", "demikian", "mengetahui", "lampiran"];
-
-            // Check if any stop word exists in the row string
-            if (stopWords.some(word => rowStr.includes(word))) {
-                console.log(`Stop word found at Row ${rowNumber}: ${rowStr.substring(0, 50)}...`);
+            // 2. DETEKSI STOP WORDS
+            if (rowStr.includes("jumlah") || rowStr.includes("total") || rowStr.includes("demikian")) {
                 stopParsing = true;
                 return;
             }
 
             // 3. AMBIL DATA
-            if (rowNumber >= dataStartRow) {
-                const spmVal = colMap.spm !== -1 ? row.getCell(colMap.spm).value?.toString().trim() || "" : "";
+            const spmVal = colMap.spm !== -1 ? row.getCell(colMap.spm).value?.toString().trim() || "" : "";
 
-                // VALIDASI UTAMA: Baris dianggap valid jika Nomor SPM-nya panjang (bukan helper row '2' dsb)
-                if (spmVal.length > 5 && !seenSPM.has(spmVal)) {
+            // VALIDASI UTAMA: Valid SPM > 5 chars (e.g., "00001/01/...")
+            if (spmVal.length > 5 && !seenSPM.has(spmVal)) {
 
-                    // Ambil No (Use fallback counter if empty/invalid)
-                    const rawNo = colMap.no !== -1 ? row.getCell(colMap.no).value : null;
-                    const finalNo = (rawNo && !isNaN(parseFloat(rawNo))) ? parseInt(rawNo) : dataCounter;
+                // --- LOGIKA SCAN AREA UNTUK KEGIATAN ---
+                // Scan all cells between SPM column and Anggaran column
+                let combinedKegiatan = [];
+                // Start from SPM+1, End at Anggaran-1
+                if (colMap.spm !== -1 && colMap.anggaran !== -1) {
+                    for (let i = colMap.spm + 1; i < colMap.anggaran; i++) {
+                        const cell = row.getCell(i);
+                        const cellVal = cell.value;
 
-                    // Ambil Kegiatan
-                    let kegiatanVal = "";
-                    if (colMap.kegiatan !== -1) {
-                        kegiatanVal = row.getCell(colMap.kegiatan).value?.toString().trim() || "";
-                    }
+                        if (cellVal) {
+                            // Extract string first
+                            const term = (typeof cellVal === 'object' && cellVal.richText)
+                                ? cellVal.richText.map(rt => rt.text).join("")
+                                : cellVal.toString();
 
-                    // Ambil Anggaran (Handle Formula/String)
-                    let parsedAmount = 0;
-                    if (colMap.anggaran !== -1) {
-                        const cell = row.getCell(colMap.anggaran);
-                        if (cell.type === ExcelJS.ValueType.Formula) {
-                            parsedAmount = cell.result; // exceljs often puts result here
-                        }
-
-                        // Fallback check cell.value if result is null or directly value
-                        if (!parsedAmount && typeof cell.value === 'number') {
-                            parsedAmount = cell.value;
-                        } else if (!parsedAmount && cell.value && typeof cell.value === 'object' && cell.value.result) {
-                            parsedAmount = cell.value.result;
-                        }
-
-                        // Parse string if still not number
-                        if (!parsedAmount && typeof cell.value === 'string') {
-                            const cleanString = cell.value.replace(/[Rp\s.]/g, '').replace(',', '.');
-                            parsedAmount = parseFloat(cleanString);
+                            // Prevent duplication from merged cells
+                            if (cell.isMerged) {
+                                // Only push if this is the master cell of the merge
+                                if (cell.address === cell.master.address) {
+                                    combinedKegiatan.push(term.trim());
+                                }
+                            } else {
+                                // Add directly if not merged
+                                combinedKegiatan.push(term.trim());
+                            }
                         }
                     }
-
-                    if (parsedAmount && !isNaN(parsedAmount)) {
-                        totalBudget += Number(parsedAmount);
-                    }
-
-                    dataSPM.push({
-                        no: finalNo,
-                        nomor_spm: spmVal,
-                        kegiatan: kegiatanVal,
-                        anggaran: parsedAmount || 0,
-                        keterangan: colMap.ket !== -1 ? row.getCell(colMap.ket).value?.toString().trim() || "" : ""
-                    });
-
-                    seenSPM.add(spmVal);
-                    dataCounter++; // Increment counter for next valid row
                 }
+                const kegiatanFinal = combinedKegiatan.join(" "); // Merge found text
+
+                // Ambil Anggaran (Robust)
+                let parsedAmount = 0;
+                if (colMap.anggaran !== -1) {
+                    const cell = row.getCell(colMap.anggaran);
+                    if (cell.type === ExcelJS.ValueType.Formula) {
+                        parsedAmount = cell.result;
+                    } else if (typeof cell.value === 'number') {
+                        parsedAmount = cell.value;
+                    } else if (cell.value && typeof cell.value === 'object' && cell.value.result) {
+                        parsedAmount = cell.value.result;
+                    } else if (typeof cell.value === 'string') {
+                        const cleanString = cell.value.replace(/[Rp\s.]/g, '').replace(',', '.');
+                        parsedAmount = parseFloat(cleanString);
+                    }
+                }
+
+                if (parsedAmount && !isNaN(parsedAmount)) {
+                    totalBudget += Number(parsedAmount);
+                }
+
+                // Ambil No (Fallback Counter)
+                const rawNo = colMap.no !== -1 ? row.getCell(colMap.no).value : null;
+                const finalNo = (rawNo && !isNaN(parseFloat(rawNo))) ? parseInt(rawNo) : dataCounter;
+
+                dataSPM.push({
+                    no: finalNo,
+                    nomor_spm: spmVal,
+                    kegiatan: kegiatanFinal, // Result of Scan Area
+                    anggaran: parsedAmount || 0,
+                    keterangan: colMap.ket !== -1 ? row.getCell(colMap.ket).value?.toString().trim() || "" : ""
+                });
+
+                seenSPM.add(spmVal);
+                dataCounter++;
             }
         });
 

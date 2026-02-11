@@ -6,7 +6,8 @@ import {
     MailCheck,
     FilePlus2,
     Database,
-    Settings
+    Settings,
+    BarChart3
 } from 'lucide-react';
 
 const NavItem = ({ icon, label, active, onClick, isOpen }) => (
@@ -24,7 +25,7 @@ const NavItem = ({ icon, label, active, onClick, isOpen }) => (
     </button>
 );
 
-const Sidebar = ({ activeTab, setActiveTab, sidebarOpen }) => {
+const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, user }) => {
     return (
         <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-slate-900 text-white transition-all duration-300 flex flex-col shadow-2xl z-20`}>
             <div className="p-4 flex items-center gap-3 border-b border-slate-800 overflow-hidden min-h-[88px]">
@@ -39,7 +40,7 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen }) => {
                 {sidebarOpen && (
                     <div className="flex flex-col leading-tight animate-in fade-in duration-500">
                         <span className="font-semibold text-[10px] text-slate-400 uppercase tracking-[0.2em]">Pemerintah Kab. Tuban</span>
-                        <span className="font-extrabold text-lg tracking-tight truncate">Kec. Grabagan</span>
+                        <span className="font-bold text-md tracking-tight truncate">Kecamatan Grabagan</span>
                     </div>
                 )}
             </div>
@@ -54,6 +55,7 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen }) => {
                 </div>
 
                 <NavItem icon={<FilePlus2 size={20} />} label="Buat Surat" active={activeTab === 'buat-surat'} onClick={() => setActiveTab('buat-surat')} isOpen={sidebarOpen} />
+                <NavItem icon={<BarChart3 size={20} />} label="Monitoring Anggaran" active={activeTab === 'monitoring-anggaran'} onClick={() => setActiveTab('monitoring-anggaran')} isOpen={sidebarOpen} />
 
                 <div className={`px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ${!sidebarOpen && 'text-center px-0'}`}>
                     {sidebarOpen ? 'Data & Sistem' : '•••'}
@@ -65,13 +67,13 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen }) => {
 
             <div className="p-4 border-t border-slate-800 bg-slate-900/50">
                 <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
-                    <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center border border-blue-400 shadow-lg shadow-blue-900/20 text-sm font-bold">
-                        A
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shadow-lg text-sm font-bold ${user?.role === 'OPERATOR' ? 'bg-violet-600 border-violet-400 shadow-violet-900/20' : 'bg-blue-600 border-blue-400 shadow-blue-900/20'}`}>
+                        {user?.name?.charAt(0) || 'U'}
                     </div>
                     {sidebarOpen && (
                         <div className="overflow-hidden animate-in slide-in-from-left-2 duration-300">
-                            <p className="text-xs font-semibold truncate text-slate-200 font-normal">Admin Kecamatan</p>
-                            <p className="text-[10px] text-slate-500 font-medium tracking-tight">SISO-APBDes v2.1</p>
+                            <p className="text-xs font-semibold truncate text-slate-200">{user?.name || 'User'}</p>
+                            <p className="text-[10px] text-slate-500 font-medium tracking-tight uppercase">{user?.role || 'STAFF'}</p>
                         </div>
                     )}
                 </div>

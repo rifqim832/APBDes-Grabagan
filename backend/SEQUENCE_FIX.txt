@@ -1,0 +1,9 @@
+DONE:
+- Separated `incomingLetterNo` (from Excel, e.g. 039) and `outgoingLetterNo` (Auto-Increment, e.g. 001).
+- Previously, the Excel upload was overwriting your "Nomor Surat Keluar".
+- Now, "Nomor Surat Keluar" will permanently stay as the auto-incremented number (001, 002...), while the Excel number is stored separately as "Nomor Surat Masuk/Rujukan".
+
+ACTION:
+1. Refresh the Frontend.
+2. Upload file.
+3. "Nomor Surat Keluar" should now correctly show "001" (or next available), NOT "039".

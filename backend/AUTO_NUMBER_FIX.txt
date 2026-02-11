@@ -1,0 +1,10 @@
+DONE:
+- Added `get-last-number` endpoint to backend.
+- Updated Frontend to fetch the last letter number on load.
+- "Nomor Surat Keluar" will now auto-increment (001, 002, 003...) based on the database content.
+
+ACTION:
+1. **Restart the backend server** (Ctrl+C, then `node server.js`).
+   (This is required because I added a new API route).
+2. Refresh the frontend.
+3. The number field should now show the next available number automatically!

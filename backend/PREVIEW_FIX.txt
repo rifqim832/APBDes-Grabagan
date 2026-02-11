@@ -1,0 +1,14 @@
+DONE:
+- **Updated Database Schema**: Added a `content` field to store the full letter details (including the table of activities).
+- **Updated Create Workflow**: When you finalize a letter, the full details are now saved to the database.
+- **Implemented Preview**: Clicking the "Eye" icon in "Surat Keluar" now opens a **Full Preview Modal** showing the letter exactly as it looks.
+
+NOTE:
+- **Existing Records**: Old records created BEFORE this update do not have the detail data (activities list) saved. The preview for these will show the "Total Anggaran" but empty table details.
+- **New Records**: Any letter created FROM NOW ON will show the full table details in the preview.
+
+ACTION:
+1. **Refresh Browser**.
+2. **Restart Backend** (automatically handled).
+3. Create a **NEW** Letter to test the full preview capability.
+4. Go to "Surat Keluar" -> Click the Eye Icon -> See the full table.

@@ -1,0 +1,16 @@
+DONE:
+- Updated the system to calculate the **Total Budget** automatically.
+- Formatted all numbers (e.g. `5000000` -> `5.000.000`) for professional output in Word.
+- Prepared the variable `{total_anggaran}` for the Word template.
+
+CRITICAL ACTION REQUIRED (MANUAL):
+You need to update your `template.docx` file manually because I cannot edit Word files directly.
+
+1. Open `public/assets/template.docx`.
+2. Scroll to the table.
+3. Add a **New Row** at the bottom of the table (outside the loop).
+4. In the "Kegiatan" column of that new row, type: **JUMLAH TOTAL** (Make it Bold).
+5. In the "Anggaran" column of that new row, type: **{total_anggaran}** (Make it Bold).
+6. Save the file.
+
+Once done, refresh the website and try downloading again. It will now show the perfectly summed total.

@@ -21,10 +21,16 @@ app.use((req, res, next) => {
 const desaRoutes = require('./src/routes/desaRoutes');
 const suratRoutes = require('./src/routes/suratRoutes');
 const parsingRoutes = require('./src/routes/parsingRoutes');
+const officialRoutes = require('./src/routes/officialRoutes');
+const paguRoutes = require('./src/routes/paguRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 
-app.use('/api/desa', desaRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/villages', desaRoutes);
 app.use('/api/surat', suratRoutes);
 app.use('/api/parsing', parsingRoutes);
+app.use('/api/officials', officialRoutes);
+app.use('/api/pagu', paguRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

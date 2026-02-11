@@ -10,20 +10,95 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// Example Model
-model Desa {
-  id    Int     @id @default(autoincrement())
-  nama  String  @unique
-  kode  String
-  surat Surat[]
+// 0. Model User (Login & RBAC)
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // Hashed with bcrypt
+  name      String
+  role      String   @default("STAFF") // "STAFF" atau "OPERATOR"
+  createdAt DateTime @default(now())
 }
 
-model Surat {
-  id        Int      @id @default(autoincrement())
-  nomor     String
-  perihal   String
-  tanggal   DateTime
-  desaId    Int
-  desa      Desa     @relation(fields: [desaId], references: [id])
-  createdAt DateTime @default(now())
+// 1. Model Master Desa (11 Desa di Grabagan)
+model Village {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique // Nama Desa
+  villageCode     String           @unique // Kode Desa (misal: 414.420.05)
+  headName        String           @default("") // Nama Kepala Desa (editable via Master Data)
+  address         String           @default("") // Alamat Kantor Desa
+  email           String           @default("") // Email Desa (opsional)
+  incomingLetters IncomingLetter[]
+  outgoingLetters OutgoingLetter[]
+  paguHistory     VillagePagu[]
+}
+
+// 2. Model Pagu Dana Desa (Batas Maksimal Anggaran per Tahun)
+model VillagePagu {
+  id        Int     @id @default(autoincrement())
+  year      Int     // Tahun anggaran (2025, 2026, ...)
+  amount    Float   // Jumlah Pagu (Maksimal Anggaran)
+  villageId Int
+  village   Village @relation(fields: [villageId], references: [id])
+
+  @@unique([villageId, year]) // Satu desa hanya punya satu pagu per tahun
+}
+
+// 3. Model Struktur Pejabat Kecamatan (Camat)
+model Official {
+  id        Int     @id @default(autoincrement())
+  name      String  // Nama Camat (misal: H. SUWANTO, S.STP, M.M)
+  nip       String  // NIP Camat
+  status    String  @default("Definitif") // "Definitif" atau "Plt."
+  title     String  @default("CAMAT GRABAGAN") // Gelar jabatan
+  rank      String  @default("Pembina Tingkat I") // Pangkat/Golongan
+}
+
+// 3. Model Surat Masuk (Data dari Excel Desa)
+model IncomingLetter {
+  id             String          @id @default(uuid())
+  referenceNo    String          // Nomor surat dari desa
+  letterDate     DateTime        // Tanggal surat desa
+  totalBudget    Float           @default(0) // Total anggaran dari Excel
+  receivedDate   DateTime        @default(now())
+  villageId      Int
+  village        Village         @relation(fields: [villageId], references: [id])
+
+  // Relasi 1-ke-1 dengan surat keluar
+  outgoingLetter OutgoingLetter?
+}
+
+// 4. Model Surat Keluar (Arsip Rekomendasi Kecamatan)
+model OutgoingLetter {
+  id               String          @id @default(uuid())
+  letterNo         String          @unique // Nomor surat otomatis (format: 900/xxx/414.420/2026)
+  subject          String          @default("") // Perihal surat
+  letterDate       DateTime        @default(now())
+  totalBudget      Float           @default(0) // Total akumulasi dari semua SPM
+
+  // Relasi ke Desa
+  villageId        Int
+  village          Village         @relation(fields: [villageId], references: [id])
+
+  // Relasi ke Surat Masuk
+  incomingLetterId String          @unique
+  incomingLetter   IncomingLetter  @relation(fields: [incomingLetterId], references: [id])
+
+  // Detail baris-baris SPM dari Excel
+  spmEntries       SpmEntry[]
+
+  createdAt        DateTime        @default(now())
+}
+
+// 5. Model Detail SPM (Baris Tabel Excel)
+model SpmEntry {
+  id               Int            @id @default(autoincrement())
+  indexNo          Int            // Nomor urut (1, 2, 3...)
+  spmNo            String         // Nomor SPM
+  activity         String         // Nama Kegiatan
+  amount           Float          // Nilai Anggaran
+  description      String?        // Keterangan (ADD/PBH/PAD)
+
+  outgoingLetterId String
+  outgoingLetter   OutgoingLetter @relation(fields: [outgoingLetterId], references: [id], onDelete: Cascade)
 }

@@ -1,0 +1,7 @@
+DONE:
+- Changed `./assets/template.docx` to `/assets/template.docx`.
+- This ensures the correct file is loaded, fixing the "Corrupted zip" error.
+
+ACTION:
+1. Refresh Browser.
+2. Click "Download DOCX" again. It should work now.

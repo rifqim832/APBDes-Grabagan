@@ -1,0 +1,10 @@
+DONE:
+- Added advanced debugging to the "Download DOCX" function.
+- It will now explicitly tell you if the server is returning HTML (a 404 page) instead of the actual DOCX file.
+- It also checks the file signature (Magic Bytes) to ensure it's a valid Zip file.
+
+ACTION:
+1. Refresh Browser (Ctrl+F5 recommended).
+2. Open Console (F12).
+3. Click "Download DOCX".
+4. If it fails, look at the error message. It will tell us exactly what's wrong (e.g. "Template path returned HTML").

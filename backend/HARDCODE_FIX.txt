@@ -1,0 +1,11 @@
+DONE:
+- Removed the hardcoded "900/039/..." logic that was overriding your numbers.
+- Integrated the Auto-Increment Number ("001") into the correct visualization format.
+- Now:
+  - "Nomor Surat Keluar" will be: `900/{AutoNum}/414.420/2026` (e.g., 900/001/414.420/2026).
+  - "Nomor Surat Masuk" will be: `900/{ExcelNum}/.../2026` (e.g., 900/039/...).
+
+ACTION:
+1. Refresh the Frontend.
+2. Upload file.
+3. Check the preview. It should now show "001" (or next number) correctly.
