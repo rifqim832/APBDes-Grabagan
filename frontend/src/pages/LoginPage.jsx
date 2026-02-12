@@ -59,7 +59,7 @@ const LoginPage = ({ onLogin }) => {
                             onError={(e) => { e.target.src = 'https://via.placeholder.com/56?text=TUBAN'; }}
                         />
                     </div>
-                    <h1 className="text-2xl font-extrabold text-white tracking-tight">SISO-APBDes</h1>
+                    <h1 className="text-2xl font-extrabold text-white tracking-tight">SMART-APBDes</h1>
                     <p className="text-sm text-blue-200/60 mt-1 font-medium">Kecamatan Grabagan — Kabupaten Tuban</p>
                 </div>
 
@@ -135,7 +135,7 @@ const LoginPage = ({ onLogin }) => {
 
                 {/* Footer */}
                 <p className="text-center text-[10px] text-blue-200/20 mt-6 font-medium tracking-wider">
-                    SISO-APBDes v2.1 — Sistem Informasi Surat &amp; Monitoring APBDes
+                    SMART-APBDes v1.0 — System Monitoring & Administration of Recommendation Terpadu - APBDes
                 </p>
             </div>
         </div>

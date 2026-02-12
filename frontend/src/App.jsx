@@ -115,7 +115,7 @@ const App = () => {
               <ChevronRight className={`transition-transform duration-300 ${sidebarOpen ? 'rotate-180' : ''}`} />
             </button>
             <div className="hidden lg:flex flex-col">
-              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em]">Sistem Informasi Tata Kelola Surat Rekomendasi</h2>
+              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em]">System Monitoring & Administration of Recommendation Terpadu - APBDes</h2>
             </div>
           </div>
           <div className="flex items-center gap-3">

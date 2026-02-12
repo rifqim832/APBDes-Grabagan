@@ -248,6 +248,26 @@ const BuatSurat = ({ logoUrl }) => {
         window.print();
     };
 
+    const handleReset = async () => {
+        setStep(1);
+        setSelectedVillage("");
+        setIncomingLetterNo("");
+        setLetterNature("Penting");
+        setLetterSubject("Pengantar Pencairan APBDes Desa [Nama Desa]");
+        setLetterDate(new Date().toISOString().split('T')[0]);
+        setParsedData({ activities: [], totalBudget: 0 });
+        setIsParsing(false);
+
+        try {
+            const res = await getLastSuratNumber();
+            if (res && res.nextNumber) {
+                setOutgoingLetterNo(res.nextNumber);
+            }
+        } catch (error) {
+            console.error("Error fetching last number:", error);
+        }
+    };
+
     const currentVillageCode = selectedVillage ? villageCodes[selectedVillage] : "414.420.XX";
 
     return (
@@ -570,7 +590,7 @@ const BuatSurat = ({ logoUrl }) => {
                             </button>
                         </div>
                         <div className="pt-10 font-normal">
-                            <button onClick={() => window.location.reload()} className="text-slate-400 font-bold text-xs hover:text-blue-600 flex items-center gap-2 mx-auto uppercase tracking-[0.2em] transition-all group font-normal">
+                            <button onClick={handleReset} className="text-slate-400 font-bold text-xs hover:text-blue-600 flex items-center gap-2 mx-auto uppercase tracking-[0.2em] transition-all group font-normal">
                                 <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300 font-normal" /> Buat Rekomendasi Baru
                             </button>
                         </div>

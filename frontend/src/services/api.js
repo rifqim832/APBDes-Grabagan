@@ -159,3 +159,33 @@ export const getMonitoringAnggaran = async (year) => {
     if (!response.ok) throw new Error("Gagal mengambil data monitoring");
     return response.json();
 };
+
+export const getAvailableYears = async () => {
+    const response = await fetch(`${API_URL}/pagu/available-years`);
+    if (!response.ok) throw new Error("Gagal mengambil data tahun");
+    return response.json();
+};
+
+// ============================================================
+// SETTINGS
+// ============================================================
+
+export const getDbStats = async () => {
+    const response = await fetch(`${API_URL}/settings/stats`);
+    if (!response.ok) throw new Error("Gagal mengambil statistik database");
+    return response.json();
+};
+
+export const downloadBackup = async () => {
+    const response = await fetch(`${API_URL}/settings/backup`);
+    if (!response.ok) throw new Error("Gagal membuat backup");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_smart_apbdes_grabagan_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+};

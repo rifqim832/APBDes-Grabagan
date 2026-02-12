@@ -69,5 +69,42 @@ router.get('/me', async (req, res) => {
     }
 });
 
+// ============================================================
+// POST /api/auth/change-password
+// ============================================================
+router.post('/change-password', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ message: "Token diperlukan" });
+
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+
+        const { currentPassword, newPassword } = req.body;
+
+        // Verify current password
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ message: "Password saat ini salah" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: "Password berhasil diubah" });
+    } catch (error) {
+        res.status(500).json({ message: "Gagal mengubah password: " + error.message });
+    }
+});
+
 module.exports = router;
 module.exports.JWT_SECRET = JWT_SECRET;

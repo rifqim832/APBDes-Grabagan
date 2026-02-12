@@ -35,12 +35,16 @@ router.get('/monitoring/:year', async (req, res) => {
 
         const result = villages.map(v => {
             const pagu = v.paguHistory[0]?.amount || 0;
-            const totalRealisasi = v.outgoingLetters.reduce(
-                (sum, letter) => sum + (letter.totalBudget || 0), 0
-            );
+            const totalRealisasi = v.outgoingLetters.reduce((sum, letter) => {
+                // Use totalBudget from letter, fallback to sum of SPM entries
+                const letterTotal = letter.totalBudget ||
+                    letter.spmEntries.reduce((s, e) => s + (e.amount || 0), 0);
+                return sum + letterTotal;
+            }, 0);
             const sisa = pagu - totalRealisasi;
             const persentase = pagu > 0 ? (totalRealisasi / pagu) * 100 : 0;
             const jumlahSurat = v.outgoingLetters.length;
+            const jumlahSpm = v.outgoingLetters.reduce((sum, letter) => sum + (letter.spmEntries?.length || 0), 0);
 
             return {
                 villageId: v.id,
@@ -50,7 +54,8 @@ router.get('/monitoring/:year', async (req, res) => {
                 realisasi: totalRealisasi,
                 sisa,
                 persentase: parseFloat(persentase.toFixed(2)),
-                jumlahSurat
+                jumlahSurat,
+                jumlahSpm
             };
         });
 
@@ -58,13 +63,36 @@ router.get('/monitoring/:year', async (req, res) => {
             totalPagu: result.reduce((s, r) => s + r.pagu, 0),
             totalRealisasi: result.reduce((s, r) => s + r.realisasi, 0),
             totalSisa: result.reduce((s, r) => s + r.sisa, 0),
-            totalSurat: result.reduce((s, r) => s + r.jumlahSurat, 0)
+            totalSurat: result.reduce((s, r) => s + r.jumlahSurat, 0),
+            totalSpm: result.reduce((s, r) => s + r.jumlahSpm, 0)
         };
         grandTotal.persentase = grandTotal.totalPagu > 0
             ? parseFloat(((grandTotal.totalRealisasi / grandTotal.totalPagu) * 100).toFixed(2))
             : 0;
 
         res.json({ villages: result, grandTotal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// GET /api/pagu/available-years - Tahun yang punya data surat
+// HARUS di atas /:year agar tidak tertangkap parameter route
+// ============================================================
+router.get('/available-years', async (req, res) => {
+    try {
+        const letters = await prisma.outgoingLetter.findMany({
+            select: { letterDate: true }
+        });
+        const yearsSet = new Set();
+        letters.forEach(l => {
+            yearsSet.add(new Date(l.letterDate).getFullYear());
+        });
+        // Also add current year
+        yearsSet.add(new Date().getFullYear());
+        const years = [...yearsSet].sort((a, b) => b - a);
+        res.json(years);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

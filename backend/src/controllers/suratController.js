@@ -162,19 +162,21 @@ exports.getAllIncoming = async (req, res) => {
 // GET /api/surat/last-number - Get last outgoing letter number
 exports.getLastLetterNumber = async (req, res) => {
     try {
-        const lastLetter = await prisma.outgoingLetter.findFirst({
-            orderBy: { createdAt: 'desc' }
+        // Ambil semua nomor surat untuk mencari nilai maksimum
+        const letters = await prisma.outgoingLetter.findMany({
+            select: { letterNo: true }
         });
 
-        let nextNumber = 1;
+        let maxNumber = 0;
 
-        if (lastLetter && lastLetter.letterNo) {
-            // letterNo is stored as "001", "002", etc.
-            const parsed = parseInt(lastLetter.letterNo);
+        letters.forEach(l => {
+            const parsed = parseInt(l.letterNo);
             if (!isNaN(parsed)) {
-                nextNumber = parsed + 1;
+                if (parsed > maxNumber) maxNumber = parsed;
             }
-        }
+        });
+
+        const nextNumber = maxNumber + 1;
 
         res.json({ nextNumber: String(nextNumber).padStart(3, '0') });
     } catch (error) {
