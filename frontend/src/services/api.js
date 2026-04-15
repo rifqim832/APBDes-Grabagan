@@ -135,6 +135,33 @@ export const uploadExcel = async (file) => {
 };
 
 // ============================================================
+// PARSING (Image Upload - OCR)
+// ============================================================
+
+export const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_URL}/parsing/parse-image`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        let errorMessage;
+        try {
+            const errorJson = await response.json();
+            errorMessage = errorJson.details || errorJson.error || "Unknown server error";
+            if (errorJson.stack) console.error("Server Stack:", errorJson.stack);
+        } catch (e) {
+            errorMessage = await response.text();
+        }
+        throw new Error(errorMessage);
+    }
+    return response.json();
+};
+
+// ============================================================
 // PAGU DANA DESA (Monitoring Anggaran)
 // ============================================================
 
@@ -158,4 +185,33 @@ export const getMonitoringAnggaran = async (year) => {
     const response = await fetch(`${API_URL}/pagu/monitoring/${year}`);
     if (!response.ok) throw new Error("Gagal mengambil data monitoring");
     return response.json();
+};
+
+export const getAvailableYears = async () => {
+    const response = await fetch(`${API_URL}/pagu/available-years`);
+    if (!response.ok) throw new Error("Gagal mengambil data tahun");
+    return response.json();
+};
+
+// ============================================================
+// SETTINGS API
+// ============================================================
+export const getDbStats = async () => {
+    const response = await fetch(`${API_URL}/settings/stats`);
+    if (!response.ok) throw new Error("Gagal mengambil statistik database");
+    return response.json();
+};
+
+export const downloadBackup = async () => {
+    const response = await fetch(`${API_URL}/settings/backup`);
+    if (!response.ok) throw new Error("Gagal membuat backup");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_smart_apbdes_grabagan_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
 };

@@ -12,10 +12,21 @@ import {
     Printer,
     ArrowLeft,
     ArrowRight,
-    Plus
+    Plus,
+    Image,
+    FileSpreadsheet,
+    Camera,
+    Info,
+    AlertTriangle,
+    Trash2,
+    PlusCircle,
+    Eye,
+    ChevronDown,
+    ChevronUp,
+    Gauge
 } from 'lucide-react';
 
-import { getDesa, uploadExcel, createLetters, getLastSuratNumber, getOfficial } from '../services/api';
+import { getDesa, uploadExcel, uploadImage, createLetters, getLastSuratNumber, getOfficial } from '../services/api';
 import logo from '../assets/logo.png';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
@@ -58,6 +69,10 @@ const BuatSurat = ({ logoUrl }) => {
     }, []);
     const [isParsing, setIsParsing] = useState(false);
     const [parsedData, setParsedData] = useState({ activities: [], totalBudget: 0 });
+    const [uploadMode, setUploadMode] = useState('excel'); // 'excel' or 'image'
+    const [ocrRawText, setOcrRawText] = useState('');
+    const [ocrConfidence, setOcrConfidence] = useState(null);
+    const [showRawOcr, setShowRawOcr] = useState(false);
 
     const [selectedVillage, setSelectedVillage] = useState("");
     // Separate Auto-Increment (Outgoing) and Excel Reference (Incoming)
@@ -81,8 +96,28 @@ const BuatSurat = ({ logoUrl }) => {
     };
     const handleFileUpload = async (file) => {
         setIsParsing(true);
+        setOcrRawText('');
+
+        // Detect file type automatically
+        const isImage = file.type.startsWith('image/');
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
         try {
-            const result = await uploadExcel(file);
+            let result;
+            if (isImage) {
+                result = await uploadImage(file);
+                if (result.ocrRawText) {
+                    setOcrRawText(result.ocrRawText);
+                }
+                if (result.ocrConfidence != null) {
+                    setOcrConfidence(result.ocrConfidence);
+                }
+            } else if (isExcel) {
+                result = await uploadExcel(file);
+            } else {
+                throw new Error('Format file tidak didukung. Gunakan Excel (.xlsx/.xls) atau Gambar (JPG/PNG).');
+            }
+
             setParsedData(result.data);
 
             if (result.metadata) {
@@ -105,11 +140,10 @@ const BuatSurat = ({ logoUrl }) => {
             setTimeout(() => {
                 setIsParsing(false);
                 setStep(3);
-            }, 1000);
+            }, isImage ? 1500 : 1000);
         } catch (error) {
             console.error(error);
             setIsParsing(false);
-            // Handle specific backend error structure if available
             const errorMsg = error.message.includes("Server Error")
                 ? error.message
                 : error.message;
@@ -119,7 +153,8 @@ const BuatSurat = ({ logoUrl }) => {
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
-            handleFileUpload(e.target.files[0]);
+            const file = e.target.files[0];
+            handleFileUpload(file);
         }
     };
 
@@ -364,34 +399,117 @@ const BuatSurat = ({ logoUrl }) => {
                 )}
 
                 {step === 2 && (
-                    <div className="p-20 text-center space-y-10 font-normal">
+                    <div className="p-10 md:p-16 text-center space-y-8 font-normal">
                         <div className="max-w-xl mx-auto font-normal">
                             <h3 className="text-3xl font-black text-slate-800 tracking-tight uppercase font-normal">Sumber Data</h3>
-                            <p className="text-slate-500 font-medium mt-2">Unggah lampiran SPM desa dalam format Excel.</p>
+                            <p className="text-slate-500 font-medium mt-2">Unggah lampiran SPM desa dalam format Excel atau Foto/Scan.</p>
                         </div>
 
+                        {/* Tab Selector */}
+                        <div className="flex justify-center">
+                            <div className="inline-flex bg-slate-100 rounded-2xl p-1.5 border border-slate-200 shadow-sm">
+                                <button
+                                    onClick={() => setUploadMode('excel')}
+                                    className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 ${uploadMode === 'excel'
+                                        ? 'bg-white text-blue-600 shadow-lg shadow-blue-500/10 border border-blue-100 scale-105'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                        }`}
+                                >
+                                    <FileSpreadsheet size={18} /> File Excel
+                                </button>
+                                <button
+                                    onClick={() => setUploadMode('image')}
+                                    className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 ${uploadMode === 'image'
+                                        ? 'bg-white text-emerald-600 shadow-lg shadow-emerald-500/10 border border-emerald-100 scale-105'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                        }`}
+                                >
+                                    <Camera size={18} /> Foto / Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Upload Dropzone */}
                         <div
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onClick={() => document.getElementById('fileInput').click()}
-                            className="bg-slate-50 border-4 border-dashed border-slate-200 rounded-[2.5rem] p-20 flex flex-col items-center gap-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group active:scale-[0.98]">
+                            className={`border-4 border-dashed rounded-[2.5rem] p-16 flex flex-col items-center gap-6 cursor-pointer transition-all group active:scale-[0.98] ${uploadMode === 'excel'
+                                ? 'bg-blue-50/30 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
+                                : 'bg-emerald-50/30 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50'
+                                }`}>
                             <input
                                 type="file"
                                 id="fileInput"
                                 className="hidden"
-                                accept=".xlsx, .xls"
+                                accept={uploadMode === 'excel' ? '.xlsx, .xls' : 'image/jpeg, image/png, image/webp, image/bmp, image/tiff'}
                                 onChange={handleFileChange}
                             />
-                            <div className="bg-white p-8 rounded-[2rem] shadow-xl text-blue-600 group-hover:scale-110 transition-transform duration-500 border border-slate-100 font-normal">
-                                <Upload size={56} strokeWidth={2} />
+                            <div className={`bg-white p-8 rounded-[2rem] shadow-xl group-hover:scale-110 transition-transform duration-500 border border-slate-100 font-normal ${uploadMode === 'excel' ? 'text-blue-600' : 'text-emerald-600'
+                                }`}>
+                                {uploadMode === 'excel' ? <FileSpreadsheet size={56} strokeWidth={1.5} /> : <Camera size={56} strokeWidth={1.5} />}
                             </div>
                             <div className="space-y-2 font-normal">
                                 <p className="text-xl font-bold text-slate-700 tracking-tight">Tarik & Lepas file ke sini</p>
                                 <p className="text-sm text-slate-400 font-medium tracking-tight font-normal">atau klik untuk menelusuri penyimpanan lokal</p>
                             </div>
-                            <div className="flex gap-3 pt-4 font-normal">
-                                <span className="bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-slate-200 shadow-sm uppercase tracking-widest font-normal">Excel XLSX</span>
-                                <span className="bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-slate-200 shadow-sm uppercase tracking-widest font-normal">Maks 10MB</span>
+                            <div className="flex flex-wrap gap-3 pt-4 font-normal justify-center">
+                                {uploadMode === 'excel' ? (
+                                    <>
+                                        <span className="bg-white text-blue-400 px-4 py-2 rounded-full text-[10px] font-bold border border-blue-100 shadow-sm uppercase tracking-widest">Excel XLSX</span>
+                                        <span className="bg-white text-blue-400 px-4 py-2 rounded-full text-[10px] font-bold border border-blue-100 shadow-sm uppercase tracking-widest">XLS</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="bg-white text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold border border-emerald-100 shadow-sm uppercase tracking-widest">JPG</span>
+                                        <span className="bg-white text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold border border-emerald-100 shadow-sm uppercase tracking-widest">PNG</span>
+                                        <span className="bg-white text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold border border-emerald-100 shadow-sm uppercase tracking-widest">WEBP</span>
+                                    </>
+                                )}
+                                <span className="bg-white text-slate-400 px-4 py-2 rounded-full text-[10px] font-bold border border-slate-200 shadow-sm uppercase tracking-widest">Maks 10MB</span>
+                            </div>
+                        </div>
+
+                        {/* Info Callout - Required Table Format */}
+                        <div className="max-w-2xl mx-auto">
+                            <div className={`rounded-2xl p-5 border text-left transition-all duration-300 ${uploadMode === 'image'
+                                ? 'bg-amber-50/80 border-amber-200'
+                                : 'bg-blue-50/50 border-blue-100'
+                                }`}>
+                                <div className="flex gap-3 items-start">
+                                    <div className={`p-2 rounded-xl flex-shrink-0 mt-0.5 ${uploadMode === 'image' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-500'
+                                        }`}>
+                                        <Info size={18} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className={`text-sm font-bold ${uploadMode === 'image' ? 'text-amber-800' : 'text-blue-700'
+                                            }`}>
+                                            {uploadMode === 'image'
+                                                ? 'Pastikan foto/scan tabel SPM jelas dan mudah dibaca oleh sistem OCR.'
+                                                : 'Pastikan file Excel memiliki format tabel yang sesuai.'}
+                                        </p>
+                                        <p className={`text-xs leading-relaxed ${uploadMode === 'image' ? 'text-amber-700' : 'text-blue-600'
+                                            }`}>
+                                            File harus berupa tabel dengan kolom:
+                                        </p>
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                            {['NO', 'NOMOR SPM', 'KEGIATAN', 'ANGGARAN', 'KETERANGAN/KET'].map((col) => (
+                                                <span key={col} className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${uploadMode === 'image'
+                                                    ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                    : 'bg-blue-100 text-blue-600 border border-blue-200'
+                                                    }`}>{col}</span>
+                                            ))}
+                                        </div>
+                                        {uploadMode === 'image' && (
+                                            <div className="flex items-start gap-2 pt-2">
+                                                <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                                                <p className="text-[11px] text-amber-600 leading-relaxed">
+                                                    Hasil ekstraksi dari foto/scan mungkin perlu diperiksa ulang karena keterbatasan pengenalan karakter (OCR). Pastikan gambar tidak buram dan teks terbaca jelas.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -400,7 +518,7 @@ const BuatSurat = ({ logoUrl }) => {
                 )}
 
                 {step === 3 && (
-                    <div className="p-24 flex flex-col items-center justify-center space-y-8 font-normal">
+                    <div className="p-10 md:p-16 flex flex-col items-center justify-center space-y-8 font-normal">
                         {isParsing ? (
                             <>
                                 <div className="relative font-normal">
@@ -409,10 +527,15 @@ const BuatSurat = ({ logoUrl }) => {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-2xl font-black text-slate-800 tracking-tight animate-pulse uppercase font-normal">Mengekstrak Data...</p>
-                                    <p className="text-sm text-slate-400 font-medium max-w-sm mx-auto mt-2 leading-relaxed">Algoritma parser sedang mengidentifikasi nominal anggaran dan rincian kegiatan SPM desa.</p>
+                                    <p className="text-sm text-slate-400 font-medium max-w-sm mx-auto mt-2 leading-relaxed">
+                                        {uploadMode === 'image'
+                                            ? 'Sistem sedang memproses gambar menggunakan OCR (Optical Character Recognition). Proses ini mungkin memerlukan waktu lebih lama...'
+                                            : 'Algoritma parser sedang mengidentifikasi nominal anggaran dan rincian kegiatan SPM desa.'}
+                                    </p>
                                 </div>
                             </>
-                        ) : (
+                        ) : !ocrRawText ? (
+                            /* === EXCEL RESULT (non-OCR) — Simple success screen === */
                             <div className="text-center space-y-8 animate-in zoom-in-95 duration-500 font-normal">
                                 <div className="bg-emerald-50 text-emerald-600 p-8 rounded-full w-32 h-32 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10 border-8 border-white scale-110 font-normal">
                                     <CheckCircle2 size={64} />
@@ -422,6 +545,194 @@ const BuatSurat = ({ logoUrl }) => {
                                     <p className="text-slate-500 font-medium leading-relaxed max-w-md mx-auto">Sistem mendeteksi <span className="text-blue-600 font-extrabold">{parsedData.activities.length} baris kegiatan</span> dengan total anggaran sebesar <span className="text-slate-900 font-extrabold tracking-tight">Rp {parsedData.totalBudget.toLocaleString('id-ID')}</span>.</p>
                                 </div>
                                 <button onClick={() => setStep(4)} className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-extrabold shadow-2xl shadow-blue-600/30 hover:bg-blue-700 hover:scale-105 transition-all uppercase tracking-[0.15em] text-sm active:scale-95 font-normal">Lihat Pratinjau Surat</button>
+                            </div>
+                        ) : (
+                            /* === OCR RESULT — Human-in-the-loop Editing === */
+                            <div className="w-full max-w-5xl space-y-6 animate-in zoom-in-95 duration-500">
+                                {/* Header with OCR Confidence */}
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-amber-100 text-amber-600 p-3 rounded-2xl">
+                                            <Eye size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Verifikasi Hasil OCR</h3>
+                                            <p className="text-slate-500 text-sm font-medium">Periksa dan koreksi data yang diekstrak dari gambar sebelum melanjutkan.</p>
+                                        </div>
+                                    </div>
+                                    {ocrConfidence != null && (
+                                        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
+                                            <Gauge size={18} className={ocrConfidence > 75 ? 'text-emerald-500' : ocrConfidence > 50 ? 'text-amber-500' : 'text-red-500'} />
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Akurasi OCR</p>
+                                                <p className={`text-lg font-black tracking-tight ${ocrConfidence > 75 ? 'text-emerald-600' : ocrConfidence > 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {ocrConfidence.toFixed(1)}%
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* OCR Warning Banner */}
+                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                                    <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                                    <p className="text-sm text-amber-700 leading-relaxed">
+                                        <span className="font-bold">Perhatian:</span> Hasil OCR mungkin mengandung kesalahan pembacaan karakter. Silakan periksa setiap baris dan koreksi jika diperlukan. Klik langsung pada sel tabel untuk mengedit.
+                                    </p>
+                                </div>
+
+                                {/* Editable Table */}
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b-2 border-slate-200">
+                                                    <th className="p-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-12">No</th>
+                                                    <th className="p-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-40">Nomor SPM</th>
+                                                    <th className="p-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Kegiatan</th>
+                                                    <th className="p-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400 w-44">Anggaran (Rp)</th>
+                                                    <th className="p-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 w-28">Ket.</th>
+                                                    <th className="p-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 w-12"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {parsedData.activities.map((activity, index) => (
+                                                    <tr key={index} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors group">
+                                                        <td className="p-2 text-center text-slate-400 font-mono text-xs">{index + 1}</td>
+                                                        <td className="p-1">
+                                                            <input
+                                                                type="text"
+                                                                value={activity.nomor_spm || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = [...parsedData.activities];
+                                                                    updated[index] = { ...updated[index], nomor_spm: e.target.value };
+                                                                    setParsedData(prev => ({ ...prev, activities: updated }));
+                                                                }}
+                                                                className="w-full px-2 py-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg outline-none text-sm font-mono transition-all bg-transparent"
+                                                            />
+                                                        </td>
+                                                        <td className="p-1">
+                                                            <input
+                                                                type="text"
+                                                                value={activity.kegiatan || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = [...parsedData.activities];
+                                                                    updated[index] = { ...updated[index], kegiatan: e.target.value };
+                                                                    setParsedData(prev => ({ ...prev, activities: updated }));
+                                                                }}
+                                                                className="w-full px-2 py-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg outline-none text-sm transition-all bg-transparent"
+                                                            />
+                                                        </td>
+                                                        <td className="p-1">
+                                                            <input
+                                                                type="number"
+                                                                value={activity.anggaran || 0}
+                                                                onChange={(e) => {
+                                                                    const updated = [...parsedData.activities];
+                                                                    const newAmount = parseFloat(e.target.value) || 0;
+                                                                    updated[index] = { ...updated[index], anggaran: newAmount };
+                                                                    const newTotal = updated.reduce((sum, a) => sum + (a.anggaran || 0), 0);
+                                                                    setParsedData({ activities: updated, totalBudget: newTotal });
+                                                                }}
+                                                                className="w-full px-2 py-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg outline-none text-sm font-mono text-right transition-all bg-transparent"
+                                                            />
+                                                        </td>
+                                                        <td className="p-1">
+                                                            <input
+                                                                type="text"
+                                                                value={activity.keterangan || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = [...parsedData.activities];
+                                                                    updated[index] = { ...updated[index], keterangan: e.target.value };
+                                                                    setParsedData(prev => ({ ...prev, activities: updated }));
+                                                                }}
+                                                                className="w-full px-2 py-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg outline-none text-sm text-center transition-all bg-transparent"
+                                                                placeholder="ADD"
+                                                            />
+                                                        </td>
+                                                        <td className="p-1 text-center">
+                                                            <button
+                                                                onClick={() => {
+                                                                    const updated = parsedData.activities.filter((_, i) => i !== index);
+                                                                    const newTotal = updated.reduce((sum, a) => sum + (a.anggaran || 0), 0);
+                                                                    setParsedData({ activities: updated, totalBudget: newTotal });
+                                                                }}
+                                                                className="text-red-300 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                                                                title="Hapus baris"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="bg-slate-50 border-t-2 border-slate-200">
+                                                    <td colSpan="3" className="p-3 text-right font-bold text-slate-600 uppercase tracking-wider text-xs">Total Anggaran</td>
+                                                    <td className="p-3 text-right font-mono font-black text-blue-600 text-base">Rp {parsedData.totalBudget.toLocaleString('id-ID')}</td>
+                                                    <td colSpan="2"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+
+                                    {/* Add Row Button */}
+                                    <div className="p-3 border-t border-slate-100">
+                                        <button
+                                            onClick={() => {
+                                                const newRow = {
+                                                    no: parsedData.activities.length + 1,
+                                                    nomor_spm: '',
+                                                    kegiatan: '',
+                                                    anggaran: 0,
+                                                    keterangan: ''
+                                                };
+                                                setParsedData(prev => ({
+                                                    ...prev,
+                                                    activities: [...prev.activities, newRow]
+                                                }));
+                                            }}
+                                            className="w-full py-2.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-all border-2 border-dashed border-blue-100 hover:border-blue-300"
+                                        >
+                                            <PlusCircle size={16} /> Tambah Baris
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Raw OCR Text (Collapsible) */}
+                                <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                                    <button
+                                        onClick={() => setShowRawOcr(!showRawOcr)}
+                                        className="w-full px-5 py-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <FileText size={14} /> Teks Mentah OCR (Referensi)
+                                        </span>
+                                        {showRawOcr ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
+                                    {showRawOcr && (
+                                        <div className="px-5 pb-4">
+                                            <pre className="bg-white rounded-xl p-4 text-xs text-slate-600 font-mono whitespace-pre-wrap leading-relaxed border border-slate-200 max-h-60 overflow-y-auto">
+                                                {ocrRawText}
+                                            </pre>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Summary & Continue */}
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                                    <p className="text-slate-500 text-sm font-medium">
+                                        <span className="text-blue-600 font-extrabold">{parsedData.activities.length} baris</span> kegiatan ·
+                                        Total <span className="text-slate-800 font-extrabold">Rp {parsedData.totalBudget.toLocaleString('id-ID')}</span>
+                                    </p>
+                                    <button
+                                        onClick={() => setStep(4)}
+                                        disabled={parsedData.activities.length === 0}
+                                        className={`bg-blue-600 text-white px-10 py-4 rounded-2xl font-extrabold shadow-2xl shadow-blue-600/30 hover:bg-blue-700 hover:scale-105 transition-all uppercase tracking-[0.15em] text-sm active:scale-95 flex items-center gap-2 ${parsedData.activities.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        <CheckCircle2 size={18} /> Konfirmasi & Pratinjau
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

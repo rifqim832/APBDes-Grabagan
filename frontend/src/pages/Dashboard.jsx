@@ -111,7 +111,7 @@ const Dashboard = ({ setActiveTab }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {villages.map((v) => {
-                        const m = monitoring[v.name] || { jumlahSurat: 0, realisasi: 0, sisa: 0, pagu: 0, persentase: 0 };
+                        const m = monitoring[v.name] || { jumlahSurat: 0, jumlahSpm: 0, realisasi: 0, sisa: 0, pagu: 0, persentase: 0 };
                         const persen = m.persentase || 0;
                         const barColor = persen >= 100 ? 'bg-red-500' : persen >= 75 ? 'bg-amber-500' : persen >= 50 ? 'bg-blue-500' : 'bg-emerald-500';
                         const textColor = persen >= 100 ? 'text-red-600' : persen >= 75 ? 'text-amber-600' : persen >= 50 ? 'text-blue-600' : 'text-emerald-600';
@@ -123,7 +123,7 @@ const Dashboard = ({ setActiveTab }) => {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-bold text-slate-800 uppercase tracking-tight truncate">{v.name}</p>
-                                        <p className="text-[10px] text-slate-400">{m.jumlahSurat} surat masuk</p>
+                                        <p className="text-[10px] text-slate-400">{m.jumlahSurat} surat — {m.jumlahSpm || 0} SPM</p>
                                     </div>
                                 </div>
                                 {/* Mini Progress Bar */}
@@ -140,6 +140,10 @@ const Dashboard = ({ setActiveTab }) => {
                                         <span className={`font-bold font-mono ${m.sisa < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                                             {m.sisa < 0 ? '- ' : ''}Rp {Number(Math.abs(m.sisa)).toLocaleString('id-ID')}
                                         </span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px]">
+                                        <span className="text-slate-400">SPM Entry</span>
+                                        <span className="font-bold text-violet-600 font-mono">{m.jumlahSpm || 0}</span>
                                     </div>
                                     <div className="flex justify-end">
                                         <span className={`text-[10px] font-bold ${textColor}`}>{persen}%</span>

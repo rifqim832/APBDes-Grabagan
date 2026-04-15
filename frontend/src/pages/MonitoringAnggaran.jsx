@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, AlertTriangle, CheckCircle2, Edit3, Save, X, ChevronDown } from 'lucide-react';
-import { getDesa, getMonitoringAnggaran, upsertPagu } from '../services/api';
+import { getDesa, getMonitoringAnggaran, upsertPagu, getAvailableYears } from '../services/api';
 
 const MonitoringAnggaran = () => {
     const currentYear = new Date().getFullYear();
@@ -12,6 +12,7 @@ const MonitoringAnggaran = () => {
     // Edit pagu state
     const [editingVillageId, setEditingVillageId] = useState(null);
     const [editAmount, setEditAmount] = useState("");
+    const [availableYears, setAvailableYears] = useState([]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -28,6 +29,17 @@ const MonitoringAnggaran = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        // Fetch available years on mount
+        getAvailableYears().then(years => {
+            setAvailableYears(years);
+            // Auto-select most recent year with data if current year has no data
+            if (years.length > 0 && !years.includes(currentYear)) {
+                setYear(years[0]);
+            }
+        }).catch(console.error);
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -70,10 +82,13 @@ const MonitoringAnggaran = () => {
 
     const formatRupiah = (num) => `Rp ${Number(num || 0).toLocaleString('id-ID')}`;
 
-    const yearOptions = [];
+    // Build year options combining available years + default range
+    const yearOptionsSet = new Set();
     for (let y = currentYear - 2; y <= currentYear + 1; y++) {
-        yearOptions.push(y);
+        yearOptionsSet.add(y);
     }
+    availableYears.forEach(y => yearOptionsSet.add(y));
+    const yearOptions = [...yearOptionsSet].sort((a, b) => b - a);
 
     if (loading) {
         return (
@@ -121,7 +136,7 @@ const MonitoringAnggaran = () => {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Total Realisasi</p>
                     <p className="text-lg font-extrabold text-blue-600 tracking-tight">{formatRupiah(grandTotal.totalRealisasi)}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">{grandTotal.totalSurat || 0} surat pencairan</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{grandTotal.totalSurat || 0} surat — {grandTotal.totalSpm || 0} SPM entry</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sisa Anggaran</p>
@@ -218,6 +233,10 @@ const MonitoringAnggaran = () => {
                                         <span className="text-blue-500 font-medium">Realisasi</span>
                                         <span className="font-bold font-mono text-blue-600">{formatRupiah(item.realisasi)}</span>
                                     </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-violet-500 font-medium">SPM Entry</span>
+                                        <span className="font-bold font-mono text-violet-600">{item.jumlahSpm || 0} SPM</span>
+                                    </div>
                                     <div className="flex justify-between border-t border-slate-100 pt-2">
                                         <span className="text-slate-400">Sisa Anggaran</span>
                                         <span className={`font-bold font-mono ${item.sisa < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -229,7 +248,7 @@ const MonitoringAnggaran = () => {
 
                             {/* Card Footer */}
                             <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                                <span className="text-[10px] text-slate-400">{item.jumlahSurat} surat pencairan</span>
+                                <span className="text-[10px] text-slate-400">{item.jumlahSurat} surat — {item.jumlahSpm || 0} SPM</span>
                                 {item.persentase >= 90 && item.persentase < 100 && (
                                     <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600">
                                         <AlertTriangle size={12} /> Hampir penuh
@@ -269,7 +288,8 @@ const MonitoringAnggaran = () => {
                                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-right border-r border-violet-500/30">Realisasi</th>
                                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-right border-r border-violet-500/30">Sisa</th>
                                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center w-20 border-r border-violet-500/30">%</th>
-                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center w-20">Surat</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center w-16 border-r border-violet-500/30">Surat</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center w-16">SPM</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -290,6 +310,7 @@ const MonitoringAnggaran = () => {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-center text-sm font-semibold text-slate-500">{item.jumlahSurat}</td>
+                                        <td className="px-4 py-3 text-center text-sm font-semibold text-violet-500">{item.jumlahSpm || 0}</td>
                                     </tr>
                                 );
                             })}
@@ -308,6 +329,7 @@ const MonitoringAnggaran = () => {
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-center text-sm text-slate-600">{grandTotal.totalSurat || 0}</td>
+                                <td className="px-4 py-3 text-center text-sm font-bold text-violet-600">{grandTotal.totalSpm || 0}</td>
                             </tr>
                         </tfoot>
                     </table>
